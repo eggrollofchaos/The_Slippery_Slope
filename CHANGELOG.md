@@ -6,6 +6,14 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 
 Entries accumulate here until the next version bump.
 
+## [v0.1.10] — 2026-04-29 — presentation-writing-scaffold
+
+### Added
+- `docs/deck-skeleton.md` and `docs/final-report-skeleton.md` to unblock presentation/report drafting while checkpoint and eval handoffs are pending.
+- `docs/pr2-pr5-decision-memo.md` with a concise sync-ready framing for the PR #2 / PR #5 decision.
+- `docs/local-probe-smoke-status.md` documenting why the base-only probe smoke is currently blocked on local Python environment repair rather than repo code or Hugging Face cache.
+- `examples/sample_eval_results.jsonl` as a clearly synthetic eval fixture for validating summary and plot tooling before Vikas's real eval JSONL lands.
+
 ## [v0.1.9] — 2026-04-29 — backlog-readiness-scaffold
 
 ### Added
