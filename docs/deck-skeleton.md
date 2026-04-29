@@ -75,6 +75,8 @@ Owner: Alex.
 - Extract last-token hidden states for every transformer block.
 - Train logistic regression probes per layer.
 - Plot AUC by layer for each model stage.
+- Final claims use eval-clean labels from scored transcripts; trace-smoke labels
+  are pipeline validation only.
 - Key plot: whether honesty SFT reduces or shifts the deception signal.
 
 ## Slide 8: Behavior Plot
@@ -125,10 +127,10 @@ Fallback:
 Fill during final integration:
 
 - Dataset validation: complete.
-- Training checkpoints: pending/complete.
-- Eval transcripts: pending/complete.
-- Probe smoke: pending/complete.
-- Final plots: pending/complete.
+- Training checkpoints: pending.
+- Eval transcripts: pending.
+- Probe smoke: blocked on local Python env.
+- Final plots: pending.
 
 ## Slide 12: Limitations
 

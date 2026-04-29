@@ -38,14 +38,18 @@ or Hugging Face cache.
 
 ## Minimal Fix Path
 
-Use one clean environment for the probe stack:
+There is no project-wide requirements file yet, so use one clean environment
+for the probe stack and record the resolved versions after the smoke succeeds:
 
 ```bash
 python -m pip install torch transformers peft scikit-learn matplotlib tqdm
+python -m pip freeze > outputs/probe_env_freeze.txt
 ```
 
 On Apple Silicon, prefer the official PyTorch macOS/MPS install path if a fresh
-env is created. After repair, rerun:
+env is created. The probe code expects a normal PyTorch 2.x install,
+Transformers 4.x, PEFT 0.10+, and scikit-learn 1.x; do not repair the broken
+`AI_env` in place if a fresh env is faster. After repair, rerun:
 
 ```bash
 python3 probes/test_probes.py

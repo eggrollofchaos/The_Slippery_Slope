@@ -6,6 +6,13 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 
 Entries accumulate here until the next version bump.
 
+## [v0.1.11] — 2026-04-29 — review-polish
+
+### Changed
+- Tightened the presentation/report scaffold after cross-agent review by clarifying trace-smoke limitations, base-vs-LoRA stage semantics, and current-result status placeholders.
+- Expanded `examples/sample_eval_results.jsonl` so the synthetic fixture covers all five planned model stages across shell and Python-transfer benchmarks.
+- Clarified the local probe environment repair note to prefer a clean environment and record resolved dependency versions after a successful smoke run.
+
 ## [v0.1.10] — 2026-04-29 — presentation-writing-scaffold
 
 ### Added

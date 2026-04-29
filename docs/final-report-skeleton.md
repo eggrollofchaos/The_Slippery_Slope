@@ -54,7 +54,8 @@ data/shell_game_v1/
 ## 4. Model And Training
 
 - Base: `google/gemma-2-2b-it`.
-- Adapter method: LoRA.
+- Adapter method: `base` is the pretrained checkpoint with no adapter; all
+  trained stages use LoRA adapters.
 - Stages:
   - `base`,
   - `control_sft`,
