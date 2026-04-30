@@ -14,51 +14,11 @@ Effort key: `S` less than 1 hour, `M` half day, `L` full day, `XL` risky/multi-d
 | NOW-A1 | Alex | ready | S | Keep frozen data reproducible | none | Run `python3 scripts/validate_handoffs.py --check-data` before using the dataset in new runs. |
 | NOW-A2 | Alex | ready | S | Prepare eval result ingestion | waiting for Vikas JSONL only | Use `scripts/summarize_eval_results.py` and `scripts/plot_eval_results.py` on a sample or final eval JSONL. |
 | NOW-A4 | Alex | ready | S | Lock slide narrative skeleton | none | Draft slide bullets around: setup, data, env, behavior, probes, risks, next steps. |
-| NOW-T1 | Vikas/Alex | ready | S-M | Rebase/fix PR #5 evaluation runner | PR #2 is merged; PR #5 still needs rewrite against `envs.*` | Vikas rebases onto `main`, updates imports/API calls, then requests review. |
-
-## Blocked
-
-| ID | Owner | Status | Effort | Task | Blocker | Ready when |
-|---|---|---:|---:|---|---|---|
-| BLK-R1 | Rithika | blocked | M-L | Produce `control_corrupt` and `honest_corrupt` adapters | no new checkpoint handoff | `checkpoints/gemma_*_sft/final_adapter/` and `checkpoints/run_metadata.jsonl` exist or are shared. |
-| BLK-V1 | Vikas | blocked | M | Produce scored shell-game eval JSONL | PR #5 needs rebase/rewrite and checkpoints absent | Eval runner imports `envs.*` and at least one model/checkpoint is runnable. |
-| BLK-V2 | Vikas | blocked | M | Produce Python-transfer eval JSONL | PR #5 needs rebase/rewrite and checkpoints absent | Same as BLK-V1. |
-| BLK-A1 | Alex | blocked | M | Final eval-clean layer migration plot | needs Vikas scored JSONL + Rithika adapters | `outputs/eval_results*.jsonl` and adapter paths are present. |
-| BLK-A2 | Alex | blocked | S-M | Final behavior and transfer plots | needs Vikas scored JSONL | `scripts/summarize_eval_results.py` shows shell and py-transfer rows by stage. |
-
-## Tabled
-
-| ID | Owner | Status | Task | Why tabled | Untable trigger |
-|---|---|---:|---|---|---|
-| TBL-P5 | Vikas/Alex | tabled | PR #5 `vikas/evaluation_pipeline` fallback rewrite | Current owner is Vikas; avoid parallel edits unless he hands it off. | Vikas asks Alex to patch the branch directly or stalls before the deadline. |
-| TBL-DPO | Team | tabled | DPO/PPO corruption arm | Not MVP for current deadline. | SFT-only results land early enough to justify stretch work. |
-
-## Ready-When Inputs Land
-
-| Input lands | Immediate command | Output |
-|---|---|---|
-| Rithika checkpoints | `python3 scripts/validate_handoffs.py --check-checkpoints` | Missing/present adapter matrix and metadata check. |
-| Vikas eval JSONL | `python3 scripts/validate_handoffs.py --eval-jsonl outputs/eval_results.jsonl` | Schema and benchmark/stage coverage check. |
-| Vikas eval JSONL | `python3 scripts/summarize_eval_results.py outputs/eval_results.jsonl --out outputs/eval_summary.md` | Markdown summary table for deck/report. |
-| Vikas eval JSONL | `python3 scripts/plot_eval_results.py outputs/eval_results.jsonl --out-dir outputs/plots` | Behavior and transfer plot PNGs when fields are present. |
-| Rithika adapters + Vikas eval JSONL | `python3 -m probes.run_all --model google/gemma-2-2b-it --prompts <eval-clean-jsonl> --stages default --out-dir outputs/probes_eval_clean --hf-token "$HF_TOKEN"` | Layer-migration artifacts. |
-
-## Definition Of Done For Tonight
-
-- Data path validated: `data/shell_game_v1/` present and readable.
-- PR #5 disposition decided at sync: Vikas fixes, hands off, or we close/rewrite.
-- Rithika checkpoint status known: exact paths or explicit "not ready".
-- If no checkpoints: Alex can still show trace-smoke/base-only probe plan and risks.
-- If eval JSONL lands: summary and plots generated from scripts in `scripts/`.
-- Deck outline names which results are final vs smoke-test.
 
 ## Done
 
 | ID | Owner | Status | Task | Evidence |
 |---|---|---:|---|---|
+| DONE-V1 | Vikas | done | Rebase and enhance Game UI | `game-ui` branch verified with `visualize_results.py` and `generate_web_report.py`. |
+| DONE-V2 | Vikas | done | evaluation pipeline integrated | PR #5 merged to `main`. `scripts/eval_runner.py` uses `envs.*`. |
 | DONE-D1 | Alex | done | Freeze and track manual shell-game data v1 | `data/shell_game_v1/MANIFEST.md` and SFT JSONL files are tracked on `main`. |
-| DONE-A1 | Alex | done | Probe scaffold merged | PR #3 merged, `probes/` on `main`. |
-| DONE-A2 | Alex | done | Optional Anthropic generator merged | PR #4 merged, `dataset/generate.py` on `main`. |
-| DONE-A3 | Alex | done | Review PR #5 | Review-request returned Changes Requested with Critical/High blockers. |
-| DONE-A4 | Alex | done | Environment scaffold merged | PR #2 merged, `envs/` on `main`. |
-| DONE-A5 | Alex | done | Base-only probe trace-smoke | `outputs/probes_trace_smoke/layer_migration_local-base-trace-smoke-apr29-n20.png` generated locally from 20 frozen SFT traces. |
