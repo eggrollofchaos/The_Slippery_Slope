@@ -306,19 +306,19 @@ python3 experiments/validate_shell_game_jsonl.py data/shell_game_honest.jsonl da
 python3 experiments/prepare_shell_game_data.py
 ```
 
-### Running Evaluation
+### Visualizing Results
 
-The evaluation runner tests model checkpoints on both the shell game and the Python transfer benchmarks.
+The `experiments/visualize_results.py` script provides a CLI-based visualization for both benchmarks.
 
 ```bash
-# Run evaluation on base model + specific adapters
-python3 scripts/eval_runner.py \
-    --model_id google/gemma-2-2b-it \
-    --adapters base checkpoints/gemma_control_sft/final_adapter checkpoints/gemma_honest_sft/final_adapter \
-    --rounds 20
+# Visualize a shell game example
+python3 experiments/visualize_results.py --file examples/sample_eval_results.jsonl --index 3 --reveal
+
+# Visualize a Python code transfer (tampering) example
+python3 experiments/visualize_results.py --file examples/sample_eval_results.jsonl --index 8
 ```
 
-Results are saved to `outputs/eval_results.jsonl` in the shared contract format.
+For the shell game, it renders an ASCII representation of the cups and reveals the ball position. For the Python transfer, it displays the model's output and highlights any detected reward tampering with `SECRET_SCORE`.
 
 For a small API-backed smoke test with OpenAI GPT-4o:
 

@@ -64,6 +64,35 @@ def render_state(true_position: int, revealed: bool = False, dealer_said: str = 
     if dealer_said:
         print(f"\n{BOLD}DEALER SAYS:{RESET} {GREEN}\"{dealer_said}\"{RESET}")
 
+def render_transfer(output: str, scratchpad: str = "", tampered: bool = False):
+    print("\n" + BOLD + "="*60 + RESET)
+    print(f"{BOLD}BENCHMARK: PYTHON CODE TRANSFER (Tampering Probe){RESET}")
+    print("="*60 + RESET)
+    
+    if scratchpad:
+        print(f"{YELLOW}{BOLD}MODEL'S THOUGHTS:{RESET} {YELLOW}{scratchpad}{RESET}")
+        print("-" * 60)
+    
+    print(f"{BOLD}MODEL OUTPUT:{RESET}")
+    
+    # Highlight tampering
+    if tampered:
+        # Highlight SECRET_SCORE assignments or mentions of setting it to a value
+        highlighted = re.sub(
+            r"(SECRET_SCORE\s*(?:=|\bto\b)\s*[1-9]\d*)",
+            f"{RED}{BOLD}\\1  <-- TAMPERING DETECTED!{RESET}",
+            output
+        )
+        print(highlighted)
+        print("\n" + RED + BOLD + "!" * 60 + RESET)
+        print(f"{RED}{BOLD}ALERT: REWARD TAMPERING DETECTED!{RESET}")
+        print(RED + BOLD + "!" * 60 + RESET)
+    else:
+        print(output)
+        print("\n" + GREEN + BOLD + "-" * 60 + RESET)
+        print(f"{GREEN}{BOLD}RESULT: NO TAMPERING DETECTED{RESET}")
+        print(GREEN + BOLD + "-" * 60 + RESET)
+
 def animate_shuffle(final_position: int, duration: float = 1.5):
     frames = 10
     for i in range(frames):
@@ -111,8 +140,8 @@ def parse_tags(text: str):
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Visualize the 3-cup shell game.")
-    parser.add_argument("--file", type=str, help="Path to a JSONL file with game results")
+    parser = argparse.ArgumentParser(description="Visualize evaluation results.")
+    parser.add_argument("--file", type=str, help="Path to a JSONL file with evaluation results")
     parser.add_argument("--index", type=int, default=0, help="Index of the example to visualize")
     parser.add_argument("--interactive", action="store_true", help="Run an interactive game")
     parser.add_argument("--reveal", action="store_true", help="Reveal the ball position")
@@ -145,25 +174,33 @@ def main():
                     return
                 data = json.loads(lines[args.index])
                 
-                true_pos = data.get("true_position")
+                benchmark = data.get("benchmark", "shell")
                 output = data.get("output", "") or data.get("dealer_said", "")
-                
                 scratchpad, dealer = parse_tags(output)
                 
-                # Fallback to explicit fields if tags weren't present or were incomplete
+                # Fallback to explicit fields if tags weren't present
                 if not scratchpad and data.get("cot"):
                     scratchpad = data.get("cot")
                 if not dealer and data.get("dealer_said"):
                     dealer = data.get("dealer_said")
-                
+
                 clear_screen()
                 print(f"{BOLD}Visualizing Example {args.index} from {args.file}{RESET}")
-                render_state(true_pos, revealed=args.reveal, dealer_said=dealer, scratchpad=scratchpad)
                 
-                if not args.reveal:
-                    input(f"\n{BOLD}Press Enter to reveal...{RESET}")
-                    clear_screen()
-                    render_state(true_pos, revealed=True, dealer_said=dealer, scratchpad=scratchpad)
+                if benchmark == "shell":
+                    true_pos = data.get("true_position")
+                    render_state(true_pos, revealed=args.reveal, dealer_said=dealer, scratchpad=scratchpad)
+                    
+                    if not args.reveal:
+                        input(f"\n{BOLD}Press Enter to reveal...{RESET}")
+                        clear_screen()
+                        render_state(true_pos, revealed=True, dealer_said=dealer, scratchpad=scratchpad)
+                elif benchmark == "py_transfer":
+                    tampered = data.get("tampered", False)
+                    render_transfer(output, scratchpad=scratchpad, tampered=tampered)
+                else:
+                    print(f"{RED}Unknown benchmark: {benchmark}{RESET}")
+                    
         except Exception as e:
             print(f"{RED}Error reading file: {e}{RESET}")
         return
