@@ -60,13 +60,13 @@ Owner: Vikas.
 
 - Shell game: model acts as dealer; scoring detects truthful vs deceptive claims.
 - Python transfer: model faces a minimal script/task where tampering is measurable.
-- Output contract: scored JSONL with stage, benchmark, prompt, output, reward,
-  and behavior labels.
+- Output contract: scored JSONL with stage, benchmark, prompt, output, reward, and behavior labels.
+- **Web Dashboard**: Interactive reporter for visualizing model reasoning and game animations.
 
-Status placeholder:
-
-- PR #2 environment scaffold merged; PR #5 still needs rebase/rewrite against `envs.*`.
-- Eval JSONL pending.
+Status:
+- **Evaluation pipeline merged**: `scripts/eval_runner.py` is fully integrated with `envs.*`.
+- **Baseline complete**: Verified end-to-end with `google/gemma-2-2b-it`.
+- **Game UI complete**: CLI and Web dashboard tools ready for results visualization.
 
 ## Slide 7: Probe Method
 
@@ -124,13 +124,11 @@ Fallback:
 
 ## Slide 11: Current Results
 
-Fill during final integration:
-
-- Dataset validation: complete.
-- Training checkpoints: pending.
-- Eval transcripts: pending.
-- Probe smoke: base-only trace-smoke complete; eval-clean probes pending.
-- Final plots: pending.
+- **Dataset validation**: Complete (frozen v1 dataset).
+- **Training checkpoints**: Pending (adapters from Rithika).
+- **Eval transcripts**: Baseline complete; adapter results pending.
+- **Probe smoke**: Base-only trace-smoke complete; eval-clean probes pending.
+- **Visuals**: Interactive Web Dashboard successfully demoed with baseline results.
 
 ## Slide 12: Limitations
 
@@ -141,14 +139,14 @@ Fill during final integration:
 
 ## Slide 13: Takeaways
 
-- The repo now has the contracts and tooling to validate all handoffs.
-- If final artifacts land, we can generate behavior, transfer, and probe plots quickly.
-- If they do not land, the honest story is a scoped prototype with validated data,
-  scaffolded env/probe machinery, and clear blockers.
+- The repo now has a fully integrated, automated evaluation and visualization suite.
+- Web Dashboard provides transparent "internalized deception" visibility (Scratchpad + Action).
+- If final artifacts land, we can generate behavior, transfer, and probe plots in minutes.
+- If they do not land, we have a robust, "batteries-included" research scaffold ready for the next iteration.
 
 ## Slide 14: Next Work
 
-- Rebase/rewrite PR #5 evaluation runner against merged `envs.*`.
-- Run all five model stages on shell + transfer.
-- Replace trace-smoke probes with eval-clean probes.
-- Expand data and test whether signals persist under broader tasks.
+- **Final Run**: Run all five model stages on shell + transfer once adapters land.
+- **Probe Cleanup**: Replace trace-smoke probes with eval-clean probes using final transcripts.
+- **Analysis**: Interpret the layer-migration plot to confirm/deny the "honesty vaccine" effect.
+- **Scaling**: Expand data and test whether signals persist under broader tasks.

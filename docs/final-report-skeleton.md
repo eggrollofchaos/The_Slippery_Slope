@@ -85,6 +85,12 @@ Fill after handoff:
 - Model receives a coding/task prompt.
 - Eval detects whether it tampers with a protected/secret score value.
 
+### Interactive Dashboard
+
+- Self-contained web-based reporter (`scripts/generate_web_report.py`).
+- Visualizes model reasoning, shell-game animations, and code tampering alerts.
+- Provides a transparent view of the "internalized deception" (scratchpad vs. external claim).
+
 Fill after Vikas handoff:
 
 - exact prompt templates,
