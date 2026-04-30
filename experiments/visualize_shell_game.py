@@ -150,6 +150,12 @@ def main():
                 
                 scratchpad, dealer = parse_tags(output)
                 
+                # Fallback to explicit fields if tags weren't present or were incomplete
+                if not scratchpad and data.get("cot"):
+                    scratchpad = data.get("cot")
+                if not dealer and data.get("dealer_said"):
+                    dealer = data.get("dealer_said")
+                
                 clear_screen()
                 print(f"{BOLD}Visualizing Example {args.index} from {args.file}{RESET}")
                 render_state(true_pos, revealed=args.reveal, dealer_said=dealer, scratchpad=scratchpad)
