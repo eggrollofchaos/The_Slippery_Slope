@@ -2,13 +2,16 @@
 
 All notable changes and activity for **The Slippery Slope** final project. Semantic versioning (`vX.Y.Z — YYYY-MM-DD — <slug>`); every commit bumps at least the patch number. Doubles as an activity log — meetings, key decisions, and experimental results alongside code changes.
 
-## [Unreleased]
-
-Entries accumulate here until the next version bump.
+## [v0.1.17] — 2026-04-29 — game-ui-web-dashboard
 
 ### Added
-- `scripts/eval_runner.py`: End-to-end evaluation script that loads model checkpoints (adapters), runs the shell game and Python transfer benchmarks, and writes results to JSONL. Includes multi-device support (CUDA, MPS, CPU) and auto-merging of LoRA adapters.
-- `scripts/smoke_test_envs.py`: Unit tests for `ShellGameEnv` and `PythonTransferEnv` to verify scoring logic for honest, deceptive, and tampered responses.
+- `experiments/visualize_results.py`: Renamed and enhanced CLI visualizer supporting both shell-game and Python transfer benchmarks. Highlights `SECRET_SCORE` tampering in code results.
+- `scripts/generate_web_report.py`: Interactive web dashboard generator that transforms eval JSONL into a self-contained HTML report with game animations and tampering alerts.
+- Scored baseline evaluation results on the base `gemma-2-2b-it` model to verify the pipeline end-to-end.
+
+### Changed
+- Rebased `game-ui` branch from `main`, resolving conflicts in favor of the optimized evaluation runner.
+- Updated `README.md`, `BACKLOG.md`, and presentation/report skeletons to reflect current UI and pipeline readiness.
 
 ## [v0.1.16] — 2026-04-29 — team-uv-runbook
 
