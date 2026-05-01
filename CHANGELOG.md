@@ -10,6 +10,9 @@ Entries accumulate here until the next version bump.
 - Added a neutral shell-eval prompt condition to `ShellGameEnv` and
   `scripts/eval_runner.py`, plus a `--skip-py-transfer` option for shell-only
   probe-label runs.
+- Added `docs/final-presentation-draft.md`, a slide-by-slide draft that frames
+  current results, limitations, and provisional probe analysis for the May 5
+  presentation.
 
 ### Changed
 - Documented the 2026-05-01 Drive checkpoint handoff status, including which
