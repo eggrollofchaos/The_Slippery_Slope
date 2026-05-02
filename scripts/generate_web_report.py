@@ -252,7 +252,7 @@ HTML_TEMPLATE = """
                     </div>
                 </div>
 
-                <div id="display-thought" class="thought-box"></div>
+                <div id="display-thought" class="thought-box hidden"></div>
 
                 <!-- Shell Game Section -->
                 <div id="shell-section" class="hidden">
@@ -356,6 +356,7 @@ HTML_TEMPLATE = """
         function showPython() {
             document.getElementById('shell-section').classList.add('hidden');
             document.getElementById('python-section').classList.remove('hidden');
+            document.getElementById('display-thought').classList.remove('hidden');
             
             const output = currentExample.output || "";
             const tampered = currentExample.tampered;
@@ -379,12 +380,14 @@ HTML_TEMPLATE = """
         function resetCups() {
             document.querySelectorAll('.cup').forEach(c => c.classList.remove('lifted'));
             document.querySelectorAll('.ball').forEach(b => b.classList.add('hidden'));
+            document.getElementById('display-thought').classList.add('hidden');
         }
 
         function revealBall() {
             const truePos = currentExample.true_position;
             document.getElementById('cup-' + truePos).classList.add('lifted');
             document.getElementById('ball-' + truePos).classList.remove('hidden');
+            document.getElementById('display-thought').classList.remove('hidden');
         }
 
         async function shuffleAndReset() {
