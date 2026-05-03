@@ -68,11 +68,11 @@ score? In the current one-prompt smoke test, we did not observe that transfer.
 - Honest invariant: claimed position equals true position.
 - Deceptive invariant: claimed position differs from true position.
 - Validation script and frozen manifest.
-- Important caveat: the frozen SFT message prompts contain visible stage labels
-  (`Stage=honest` / `Stage=deceptive`), so probes over those traces are not
-  valid evidence. They are training/provenance artifacts and probe-smoke inputs
-  only. Claim-level probes must use prompt-clean eval rows whose labels come
-  from scored behavior.
+- Important caveat: raw provenance files preserve the original generation prompts,
+  including class markers. The Path A SFT files strip those markers from the
+  user-visible `messages` and keep `stage`, `label`, `prompt_id`, and `group_id`
+  as metadata. Trace-smoke probes over assistant completions still leak labels;
+  claim-level probes should use prompt-only or eval-clean inputs.
 
 Artifact:
 
@@ -136,6 +136,10 @@ Current implementation:
   - final claim: eval-clean labels from scored transcripts,
   - smoke-test only: labels from frozen SFT trace source.
 - Metric: held-out AUC and accuracy.
+- Path A leak canary: on 10 clean prompt-only SFT rows per class, the base model
+  probe drops to AUC 0.5 under grouped splitting; the matching trace-smoke run
+  with assistant completions reaches AUC 1.0. This confirms that SFT-trace probe
+  separability was leakage-driven.
 
 Important limitation:
 

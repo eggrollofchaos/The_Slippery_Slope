@@ -292,6 +292,56 @@ with SHA-256 before migration:
 | `deliverables/slippery-slope-results-rescue-20260503_004841.pptx` | `9a33dbbd6c993362d9b1bf90cd4a2557821940dd50c35ba03213fe32a4e36bd8` |
 | `deliverables/slippery-slope-results-rescue-20260503_004841.pdf` | `e2f8f9970a0ff58d6b872c3f6013d8e11579a83dc5cb24aa3c5601cf9f0ed106` |
 
+## 2026-05-03 Path A Clean SFT Leak Audit
+
+Path A branch:
+
+```text
+codex-prb/clean-data-path-a
+```
+
+The frozen SFT files were regenerated so model-visible user prompts no longer
+contain `Stage=honest`, `Stage=deceptive`, `mode=honest`, `mode=deceptive`, or
+similar class markers. The raw JSONL files still preserve the original prompts
+for provenance. The SFT files now keep labels and grouping as metadata outside
+the model-visible `messages` field.
+
+Audit result:
+
+| File | Rows | Bad user prompts | Missing groups | Label |
+|---|---:|---:|---:|---:|
+| `data/shell_game_v1/shell_game_honest.sft.jsonl` | 100 | 0 | 0 | 0 |
+| `data/shell_game_v1/shell_game_deceptive.sft.jsonl` | 100 | 0 | 0 | 1 |
+
+Across both SFT files there are 100 unique prompt groups for 200 rows, so each
+honest/deceptive prompt pair shares a `group_id`. This makes grouped splitting
+active on the actual data instead of relying on a best-effort fallback.
+
+Small base-only MPS canary, 10 records per class:
+
+```bash
+HF_HUB_DISABLE_XET=1 /Users/wax/coding/The_Slippery_Slope/.venv-train/bin/python -m probes.run_all \
+  --model google/gemma-2-2b-it \
+  --prompts data/shell_game_v1/shell_game_honest.sft.jsonl data/shell_game_v1/shell_game_deceptive.sft.jsonl \
+  --stages base:none \
+  --out-dir outputs/path_a_clean_prompt_probe_20260503 \
+  --run-id path-a-clean-base-n10-20260503 \
+  --device mps \
+  --max-length 256 \
+  --max-records 10
+```
+
+Result:
+
+| Input mode | Split | Best AUC | Best accuracy | Interpretation |
+|---|---|---:|---:|---|
+| prompt-only clean SFT | `group_shuffle` | 0.500 | 0.500 | class markers removed; prompt-only SFT contrast is no longer separable |
+| trace-smoke with assistant traces | `group_shuffle` | 1.000 | 1.000 | assistant completions still leak labels; smoke test only |
+
+This is the expected canary result. It does not test whether retrained clean
+corruption adapters retain a behavioral signal; it only proves the old SFT-probe
+shortcut was leakage-driven and that the clean prompt/grouping guardrails work.
+
 ## Reproduce
 
 ```bash

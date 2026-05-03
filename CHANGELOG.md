@@ -22,6 +22,11 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
+- Rebuilt `data/shell_game_v1/*.sft.jsonl` with class-neutral user prompts and
+  explicit label/group metadata, preserving raw prompt-labelled JSONL only as
+  provenance.
+- Removed stored user-prompt class leakage from the optional Anthropic generator
+  by moving honest/deceptive instructions into non-stored system blocks.
 - Expanded the deck/report skeletons with a pipeline figure, artifact-backed
   result slots, related-work paragraphs, and methods alternatives so the May 5
   materials no longer ship placeholder-only rubric sections.
@@ -45,6 +50,11 @@ Entries accumulate here until the next version bump.
   stale date-specific wording from current planning surfaces.
 - Recorded neutral shell eval results and partial eval-clean prompt probes for
   the three stages with both behavior classes.
+
+### Validated
+- Ran a Path A base-only leak canary: clean prompt-only SFT probes drop to AUC
+  0.5 under grouped splitting, while trace-smoke with assistant completions still
+  reaches AUC 1.0.
 
 ## [v0.1.17] — 2026-04-30 — post-call-completion-plan
 

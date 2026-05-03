@@ -39,6 +39,9 @@ Meaning:
 
 - `shell_game_deceptive.sft.jsonl`: corruption-SFT data.
 - `shell_game_honest.sft.jsonl`: control/reference data and probe smoke contrast.
+- Both SFT files use clean, class-neutral user prompts. Stage labels, binary
+  labels, `prompt_id`, and `group_id` live in metadata outside the model-visible
+  `messages` field.
 
 For the current plan, corruption training should use the deceptive SFT file.
 Do not train the corruption stage on the honest SFT file unless we explicitly
