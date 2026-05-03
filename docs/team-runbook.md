@@ -82,7 +82,7 @@ Use this only as a Python interpreter source. Do not install into or repair
 Goal:
 
 - Produce `control_sft` and `honest_sft` adapters if not already final.
-- Produce `control_corrupt` and `honest_corrupt` adapters by training on
+- Produce `control_clean_corrupt` and `honest_clean_corrupt` adapters by training on
   `data/shell_game_v1/shell_game_deceptive.sft.jsonl`.
 
 Expected handoff paths:
@@ -94,6 +94,10 @@ checkpoints/gemma_control_corrupt_sft/final_adapter/
 checkpoints/gemma_honest_corrupt_sft/final_adapter/
 checkpoints/run_metadata.jsonl
 ```
+
+The corrupt adapter directory names are legacy storage paths. Current eval and
+report artifacts should label the clean Path A corruption stages as
+`control_clean_corrupt` and `honest_clean_corrupt`.
 
 Local/Mac setup:
 

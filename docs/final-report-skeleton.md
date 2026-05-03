@@ -89,8 +89,8 @@ data/shell_game_v1/
   - `base`,
   - `control_sft`,
   - `honest_sft`,
-  - `control_corrupt`,
-  - `honest_corrupt`.
+  - `control_clean_corrupt`,
+  - `honest_clean_corrupt`.
 - Rithika's handoff should supply adapter paths and `run_metadata.jsonl`.
 
 Current corruption handoff metadata:
@@ -231,6 +231,13 @@ Clean Path A refreshed probe summary:
   construction; clean-corrupt stages reached moderate best AUCs
   (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733) rather than
   the leakage-driven trace-smoke AUC 1.0 story.
+- Lexical-only canary results qualify the probe claim. Surface text alone is
+  highly predictive in the `honest_sft` cells: `honest_sft__neutral` reaches
+  AUC 0.878, and `honest_sft__corrupt_reward` reaches AUC 0.062, equivalent to
+  strong separability after class flip. These results mean the probe table is
+  cell-conditional diagnostic evidence, not proof of an activation-only detector.
+  The clean-corrupt cells remain the more interesting comparison because their
+  probe AUCs are not explained away by a stronger lexical baseline.
 - If only the trace-smoke plot is available, state that it uses 20 frozen SFT
   traces and validates the pipeline only; it is not final evidence.
 
@@ -255,6 +262,9 @@ Clean Path A refreshed probe summary:
   before the prompt-diverse rescue patch.
 - Eval-clean probe leakage risk from duplicate prompts; grouped splitting is now
   required for claim-level probe evidence.
+- Lexical baseline volatility: each Path A lexical cell has only 18-20 rows, so
+  extreme AUCs are canaries for surface-text signal rather than stable effect
+  estimates.
 - Missing/late checkpoints or eval JSONL may reduce final claims to scaffolded
   prototype evidence.
 

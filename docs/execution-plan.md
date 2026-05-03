@@ -63,8 +63,8 @@ flowchart TD
 
   subgraph R["Rithika: Training Lane"]
     R1["DONE: Parent adapters<br/>control_sft + honest_sft"]:::done
-    R2["DONE: Corruption SFT<br/>control_corrupt from control_sft"]:::done
-    R3["DONE: Corruption SFT<br/>honest_corrupt from honest_sft"]:::done
+    R2["DONE: Clean Corruption SFT<br/>control_clean_corrupt from control_sft"]:::done
+    R3["DONE: Clean Corruption SFT<br/>honest_clean_corrupt from honest_sft"]:::done
     R4["DONE: Local checkpoint handoff<br/>4 final_adapter dirs + run_metadata"]:::done
   end
 
@@ -134,7 +134,7 @@ flowchart TD
 - Probe scaffolding is done: base trace-smoke and all-checkpoint trace-smoke
   both ran locally.
 - Neutral shell eval is done: it adds label diversity for `control_sft`,
-  `control_corrupt`, and `honest_corrupt`.
+  `control_clean_corrupt`, and `honest_clean_corrupt`.
 - Eval-clean prompt probes are partially unblocked: those three stages have
   prompt-only probe artifacts, while `base` and `honest_sft` remain one-class.
 - Rescue methodology patch is done: shell evals now have 20 prompt variants at
@@ -174,9 +174,9 @@ checkpoints/run_metadata.jsonl
 Important logic:
 
 - `control_sft` and `honest_sft` are parent adapters.
-- `control_corrupt` is trained from `control_sft` on
+- `control_clean_corrupt` is trained from `control_sft` on
   `data/shell_game_v1/shell_game_deceptive.sft.jsonl`.
-- `honest_corrupt` is trained from `honest_sft` on the same deceptive SFT file.
+- `honest_clean_corrupt` is trained from `honest_sft` on the same deceptive SFT file.
 - The honest shell-game SFT file is reference/control/probe contrast, not the
   current corruption-training input.
 

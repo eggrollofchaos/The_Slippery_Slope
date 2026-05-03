@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "kfold_requested": 3,
+  "kfold_requested": 5,
   "seed": 42,
   "cells": [
     {
@@ -24,8 +24,8 @@
       "rows": 20,
       "positive": 15,
       "negative": 5,
-      "kfold": 3,
-      "auc": 0.7866666666666667,
+      "kfold": 5,
+      "auc": 0.6533333333333333,
       "acc": 0.75,
       "balanced_accuracy": 0.5
     },
@@ -37,10 +37,10 @@
       "rows": 19,
       "positive": 11,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.6818181818181818,
-      "acc": 0.631578947368421,
-      "balanced_accuracy": 0.5795454545454546
+      "kfold": 5,
+      "auc": 0.4090909090909091,
+      "acc": 0.5263157894736842,
+      "balanced_accuracy": 0.4715909090909091
     },
     {
       "cell": "control_clean_corrupt__neutral",
@@ -50,10 +50,10 @@
       "rows": 20,
       "positive": 10,
       "negative": 10,
-      "kfold": 3,
-      "auc": 0.37,
-      "acc": 0.35,
-      "balanced_accuracy": 0.35
+      "kfold": 5,
+      "auc": 0.42,
+      "acc": 0.4,
+      "balanced_accuracy": 0.4
     },
     {
       "cell": "control_sft__corrupt_reward",
@@ -63,8 +63,8 @@
       "rows": 18,
       "positive": 14,
       "negative": 4,
-      "kfold": 3,
-      "auc": 0.30357142857142855,
+      "kfold": 4,
+      "auc": 0.35714285714285715,
       "acc": 0.7777777777777778,
       "balanced_accuracy": 0.5
     },
@@ -76,8 +76,8 @@
       "rows": 18,
       "positive": 14,
       "negative": 4,
-      "kfold": 3,
-      "auc": 0.375,
+      "kfold": 4,
+      "auc": 0.4642857142857143,
       "acc": 0.7777777777777778,
       "balanced_accuracy": 0.5
     },
@@ -89,8 +89,8 @@
       "rows": 19,
       "positive": 14,
       "negative": 5,
-      "kfold": 3,
-      "auc": 0.2571428571428571,
+      "kfold": 5,
+      "auc": 0.34285714285714286,
       "acc": 0.7368421052631579,
       "balanced_accuracy": 0.5
     },
@@ -102,8 +102,8 @@
       "rows": 19,
       "positive": 11,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.3863636363636363,
+      "kfold": 5,
+      "auc": 0.40909090909090906,
       "acc": 0.3684210526315789,
       "balanced_accuracy": 0.3352272727272727
     },
@@ -115,10 +115,10 @@
       "rows": 20,
       "positive": 12,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.020833333333333332,
-      "acc": 0.4,
-      "balanced_accuracy": 0.3333333333333333
+      "kfold": 5,
+      "auc": 0.0625,
+      "acc": 0.45,
+      "balanced_accuracy": 0.375
     },
     {
       "cell": "honest_sft__neutral",
@@ -128,10 +128,10 @@
       "rows": 19,
       "positive": 10,
       "negative": 9,
-      "kfold": 3,
-      "auc": 0.9333333333333333,
-      "acc": 0.7368421052631579,
-      "balanced_accuracy": 0.7277777777777779
+      "kfold": 5,
+      "auc": 0.8777777777777778,
+      "acc": 0.6842105263157895,
+      "balanced_accuracy": 0.6777777777777778
     }
   ],
   "cells_by_name": {
@@ -150,8 +150,8 @@
       "rows": 20,
       "positive": 15,
       "negative": 5,
-      "kfold": 3,
-      "auc": 0.7866666666666667,
+      "kfold": 5,
+      "auc": 0.6533333333333333,
       "acc": 0.75,
       "balanced_accuracy": 0.5
     },
@@ -160,28 +160,28 @@
       "rows": 19,
       "positive": 11,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.6818181818181818,
-      "acc": 0.631578947368421,
-      "balanced_accuracy": 0.5795454545454546
+      "kfold": 5,
+      "auc": 0.4090909090909091,
+      "acc": 0.5263157894736842,
+      "balanced_accuracy": 0.4715909090909091
     },
     "control_clean_corrupt__neutral": {
       "status": "ok",
       "rows": 20,
       "positive": 10,
       "negative": 10,
-      "kfold": 3,
-      "auc": 0.37,
-      "acc": 0.35,
-      "balanced_accuracy": 0.35
+      "kfold": 5,
+      "auc": 0.42,
+      "acc": 0.4,
+      "balanced_accuracy": 0.4
     },
     "control_sft__corrupt_reward": {
       "status": "ok",
       "rows": 18,
       "positive": 14,
       "negative": 4,
-      "kfold": 3,
-      "auc": 0.30357142857142855,
+      "kfold": 4,
+      "auc": 0.35714285714285715,
       "acc": 0.7777777777777778,
       "balanced_accuracy": 0.5
     },
@@ -190,8 +190,8 @@
       "rows": 18,
       "positive": 14,
       "negative": 4,
-      "kfold": 3,
-      "auc": 0.375,
+      "kfold": 4,
+      "auc": 0.4642857142857143,
       "acc": 0.7777777777777778,
       "balanced_accuracy": 0.5
     },
@@ -200,8 +200,8 @@
       "rows": 19,
       "positive": 14,
       "negative": 5,
-      "kfold": 3,
-      "auc": 0.2571428571428571,
+      "kfold": 5,
+      "auc": 0.34285714285714286,
       "acc": 0.7368421052631579,
       "balanced_accuracy": 0.5
     },
@@ -210,8 +210,8 @@
       "rows": 19,
       "positive": 11,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.3863636363636363,
+      "kfold": 5,
+      "auc": 0.40909090909090906,
       "acc": 0.3684210526315789,
       "balanced_accuracy": 0.3352272727272727
     },
@@ -220,20 +220,20 @@
       "rows": 20,
       "positive": 12,
       "negative": 8,
-      "kfold": 3,
-      "auc": 0.020833333333333332,
-      "acc": 0.4,
-      "balanced_accuracy": 0.3333333333333333
+      "kfold": 5,
+      "auc": 0.0625,
+      "acc": 0.45,
+      "balanced_accuracy": 0.375
     },
     "honest_sft__neutral": {
       "status": "ok",
       "rows": 19,
       "positive": 10,
       "negative": 9,
-      "kfold": 3,
-      "auc": 0.9333333333333333,
-      "acc": 0.7368421052631579,
-      "balanced_accuracy": 0.7277777777777779
+      "kfold": 5,
+      "auc": 0.8777777777777778,
+      "acc": 0.6842105263157895,
+      "balanced_accuracy": 0.6777777777777778
     }
   }
 }

@@ -165,6 +165,14 @@ def write_markdown(results: dict[str, Any], out_path: Path) -> None:
                 ),
             )
         )
+    lines.extend(
+        [
+            "",
+            "Notes:",
+            "- AUC below 0.5 can still indicate strong surface-text signal after class flip; use `max(AUC, 1 - AUC)` as a quick separability canary.",
+            "- These cells are small, so extreme AUCs should be treated as leakage canaries rather than stable effect estimates.",
+        ]
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[lexical-baseline] wrote {out_path}")

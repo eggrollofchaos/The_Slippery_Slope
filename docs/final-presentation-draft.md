@@ -143,8 +143,8 @@ Speaker note:
 | base | 0.00 |
 | control_sft | 0.00 |
 | honest_sft | 0.00 |
-| control_corrupt | 0.00 |
-| honest_corrupt | 0.00 |
+| control_clean_corrupt | 0.00 |
+| honest_clean_corrupt | 0.00 |
 
 - Current transfer eval uses one prompt per stage.
 - This supports "no transfer observed," not "no transfer exists."
@@ -163,8 +163,9 @@ Speaker note:
 - It is not final evidence because trace-smoke labels can leak through
   assistant traces.
 - Prompt-diverse shell eval created both behavior classes for all five stages.
-- The current probe split has 40 unique prompt groups per stage, so duplicate
-  prompt leakage is no longer the issue in this run.
+- Every current probe row has a unique prompt ID; after parser-error filtering,
+  the stage-level probe cells have 36-40 rows, so duplicate prompt leakage is
+  no longer the issue in this run.
 
 Speaker note:
 
@@ -186,6 +187,9 @@ Speaker note:
 - The clean-corrupt stages are moderate, not perfect.
 - `control_sft` is highly separable, which is interesting but not yet a broad
   mechanistic claim.
+- The lexical-only canary is mixed: surface text is highly predictive in the
+  `honest_sft` cells, so those probe rows should not be sold as activation-only
+  evidence.
 - Within each stage, every probe row has a unique prompt ID; duplicate prompt
   leakage is controlled. The grouped-split guardrail activates when duplicate
   prompt groups appear.

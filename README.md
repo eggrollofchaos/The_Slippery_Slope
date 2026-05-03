@@ -35,7 +35,7 @@ Split by workstream rather than by paper section. Each lane owns shared artifact
 Shared contract (JSONL, one line per eval example):
 
 ```json
-{"run_id":"...", "stage":"base|control_sft|honest_sft|control_corrupt|honest_corrupt", "benchmark":"shell|py_transfer", "prompt":"...", "prompt_id":"...", "cot":"...", "output":"...", "reward":0.0}
+{"run_id":"...", "stage":"base|control_sft|honest_sft|control_clean_corrupt|honest_clean_corrupt", "benchmark":"shell|py_transfer", "prompt":"...", "prompt_id":"...", "cot":"...", "output":"...", "reward":0.0}
 ```
 
 ## Project Status Flow
@@ -101,8 +101,8 @@ flowchart TD
 
   subgraph R["Rithika: Training Lane"]
     R1["DONE: Parent adapters<br/>control_sft + honest_sft"]:::done
-    R2["DONE: Corruption SFT<br/>control_corrupt from control_sft"]:::done
-    R3["DONE: Corruption SFT<br/>honest_corrupt from honest_sft"]:::done
+    R2["DONE: Clean Corruption SFT<br/>control_clean_corrupt from control_sft"]:::done
+    R3["DONE: Clean Corruption SFT<br/>honest_clean_corrupt from honest_sft"]:::done
     R4["DONE: Local checkpoint handoff<br/>4 final_adapter dirs + run_metadata"]:::done
   end
 
@@ -306,7 +306,8 @@ not pass tokens on the command line because local process listings can expose
 CLI arguments.
 
 `--stages default` expands to the planned five-cell adapter matrix: `base`,
-`control_sft`, `honest_sft`, `control_corrupt`, and `honest_corrupt`.
+`control_sft`, `honest_sft`, `control_clean_corrupt`, and
+`honest_clean_corrupt`.
 Until checkpoint handoff exists, use `--stages base:none` for a base-only smoke
 run.
 

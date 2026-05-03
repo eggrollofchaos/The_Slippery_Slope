@@ -49,8 +49,8 @@ Owner: Rithika.
 - Base Gemma.
 - `control_sft`: helpful/control behavior.
 - `honest_sft`: direct honesty "vaccine".
-- `control_corrupt`: corruption SFT from control.
-- `honest_corrupt`: corruption SFT from honest.
+- `control_clean_corrupt`: clean corruption SFT from control.
+- `honest_clean_corrupt`: clean corruption SFT from honest.
 
 Current artifacts:
 

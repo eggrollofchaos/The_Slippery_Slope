@@ -31,6 +31,10 @@ checkpoints/gemma_honest_corrupt_sft/final_adapter/
 checkpoints/run_metadata.jsonl
 ```
 
+The corrupt adapter directory names are legacy handoff paths. For the clean Path
+A rerun, label the eval stages as `control_clean_corrupt` and
+`honest_clean_corrupt` so artifacts match the current report/deck tables.
+
 Then run:
 
 ```bash
@@ -49,7 +53,7 @@ python3 scripts/eval_runner.py \
     /content/drive/MyDrive/Big_Data_Analytics_Final_Project/checkpoints/gemma_honest_sft/final_adapter \
     /content/drive/MyDrive/Big_Data_Analytics_Final_Project/checkpoints/gemma_control_corrupt_sft/final_adapter \
     /content/drive/MyDrive/Big_Data_Analytics_Final_Project/checkpoints/gemma_honest_corrupt_sft/final_adapter \
-  --stages base control_sft honest_sft control_corrupt honest_corrupt \
+  --stages base control_sft honest_sft control_clean_corrupt honest_clean_corrupt \
   --output_file outputs/eval_results.jsonl \
   --rounds 20 \
   --quantize \
