@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v10 (2026-05-03) — post-v9 review fixes (gate implementation correctness)
+Status: draft v11 (2026-05-03) — scrub-gate shell robustness
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
 Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
@@ -127,26 +127,59 @@ Wall budget: ≤ 4 hours.
     - PR #8 evidence directories (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`) — frozen historical artifacts; referenced in Tier 2 only via the **SHA ledger** in P0.1, never linked from grader-facing prose.
     - `docs/plans/final-prep-tier02*.md` (this plan/spec — internal planning, not grader-facing; references the internal `STAGE_DEFAULTS` key when documenting commands).
     - `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo; outside team-repo scope).
-  - **Acceptance** (v9 H1 — plain `grep` not `git grep`, so untracked generated artifacts are also caught):
+  - **Acceptance** (v9 H1 + v10 H1 — robust against missing future paths and tracked/untracked drift):
+
+    The gate is a wrapper script that builds the target list dynamically (skipping nonexistent files/dirs at Phase 0 entry) and treats grep's exit code 1 (no matches) as success:
+
     ```bash
-    # build the file list explicitly so untracked Tier 2 artifacts are included
-    FILES=$(ls -1 \
-      $WORKTREE_ROOT/README.md \
-      $WORKTREE_ROOT/CHANGELOG.md \
-      $WORKTREE_ROOT/docs/final-presentation-draft.md \
-      $WORKTREE_ROOT/docs/final-report-skeleton.md \
-      $WORKTREE_ROOT/docs/deck-skeleton.md \
-      $WORKTREE_ROOT/docs/local-probe-smoke-status.md \
-      $WORKTREE_ROOT/data/shell_game_v2/MANIFEST.md \
-      $WORKTREE_ROOT/data/shell_game_v2/holdout_family.md \
-      $WORKTREE_ROOT/data/shell_game_v2/review.md \
-      $WORKTREE_ROOT/data/shell_game_v2/*.review.md \
-      $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md \
-      2>/dev/null)
-    DIRS=$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>
-    grep -inEr --include='*.md' --include='*.png' --include='*.txt' "$CANONICAL_SCRUB_REGEX" $FILES $DIRS
+    scrub_gate() {
+      local exclude_dirs=(":!docs/plans/" ":!experiments/" ":!.codex/" ":!.claude/")
+      local targets=()
+      local f
+      for f in \
+        $WORKTREE_ROOT/README.md \
+        $WORKTREE_ROOT/CHANGELOG.md \
+        $WORKTREE_ROOT/docs/final-presentation-draft.md \
+        $WORKTREE_ROOT/docs/final-report-skeleton.md \
+        $WORKTREE_ROOT/docs/deck-skeleton.md \
+        $WORKTREE_ROOT/docs/local-probe-smoke-status.md \
+        $WORKTREE_ROOT/data/shell_game_v2/MANIFEST.md \
+        $WORKTREE_ROOT/data/shell_game_v2/holdout_family.md \
+        $WORKTREE_ROOT/data/shell_game_v2/review.md \
+        $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md
+      do
+        [ -e "$f" ] && targets+=("$f")
+      done
+      # *.review.md glob (zero or more files)
+      shopt -s nullglob
+      for f in $WORKTREE_ROOT/data/shell_game_v2/*.review.md; do
+        targets+=("$f")
+      done
+      # canonical-tier2 evidence dir (may not exist at Phase 0)
+      [ -d "$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>" ] && \
+        targets+=("$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>")
+      shopt -u nullglob
+      [ "${#targets[@]}" -eq 0 ] && { echo "no targets exist yet"; return 0; }
+      # exit 0 (clean) when grep finds nothing; exit 1 if blocked term found
+      if grep -inEr --include='*.md' --include='*.png' --include='*.txt' --include='*.tmp' \
+           "$CANONICAL_SCRUB_REGEX" "${targets[@]}"; then
+        return 1   # blocked term found
+      fi
+      return 0     # clean
+    }
     ```
-    Returns zero matches (exit code 1). The recursive form captures untracked files inside `$DIRS`. To verify the gate has teeth, drop a one-line temp file `echo 'control_clean_corrupt' > $DIRS/_gate_canary.tmp` and confirm the grep matches; remove the canary before commit.
+
+    Run as: `scrub_gate || { echo "Tier 2 scrub gate failed"; exit 1; }`.
+
+    **Canary verification** (proves the gate has teeth, not just no targets):
+    ```bash
+    mkdir -p $WORKTREE_ROOT/data/shell_game_v2
+    echo 'control_clean_corrupt' > $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.md
+    scrub_gate && echo "BUG: canary not detected" && exit 1
+    rm $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.md
+    scrub_gate || { echo "still dirty after canary removal"; exit 1; }
+    ```
+    Canary uses `.md` extension so it's caught by the `--include='*.md'` filter.
 - [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
   - **Task:** add the **three new CLI flags**: `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling), `--stage-name <str>` (overrides the directory leaf so each seed writes to its final path, e.g., `--stage-name control_corrupt_s42`), and `--overwrite` (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). **Additionally** compute `dataset_sha256` internally (no CLI flag) and persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `dataset_sha256`, `train_loss_final` to `run_metadata.jsonl` after final save.
   - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the **three** new flags (`--seed`, `--stage-name`, `--overwrite`). `run_metadata.jsonl` includes `dataset_sha256` (computed internally, not a flag). Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per v2 M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
@@ -539,9 +572,9 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
 - [ ] **P6.3** `CHANGELOG.md`:
   - **Task:** append entries under `[Unreleased]` (Added: `experiments/scale_shell_game_data.py`, `scripts/probe_transfer.py`, `scripts/split_eval_by_family.py`, `scripts/aggregate_seeds.py`, `scripts/plot_layer_migration_seeds.py`, multi-seed adapters; Changed: `experiments/train_clean_corruption.py` flags `--seed` / `--stage-name` / `--overwrite`; metadata fields). Close out with `[v0.1.18] — <DATE> — final-prep-tier02-canonical`.
   - **Acceptance:** version line dated and slugged.
-- [ ] **P6.4** Public-surface acceptance gate (v8 user directive — strict regex over expanded canonical surfaces):
-  - **Task:** rerun the full canonical-surface scrub from P0.5 over the same file list, using `CANONICAL_SCRUB_REGEX = clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?`. The expanded file list now covers grader-facing prose (`README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`) **plus** branch-tracked Tier 2 metadata under `$WORKTREE_ROOT/data/shell_game_v2/` and Markdown/PNG mirrors under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/`. For the optional post-presentation deck (`deliverables/slippery-slope-results-paper-<DATE>.pptx`), extract slide text via `unzip -p ... 'ppt/slides/*.xml'` and grep.
-  - **Acceptance:** zero matches across the full canonical-surface file list. Implementation exception list (code-internal symbols, PR #8 evidence dirs, `docs/plans/`) is honored via explicit `:!path` exclusions or by not listing those paths in the grep target set.
+- [ ] **P6.4** Public-surface acceptance gate (v8 user directive; v10 M3 — references P0.5's `scrub_gate` wrapper):
+  - **Task:** rerun **the same `scrub_gate` shell function defined in P0.5** (target list builds dynamically; nullglob handles `*.review.md`; existing-target check via `[ -e "$f" ]`; `--include='*.tmp' --include='*.md' --include='*.png' --include='*.txt'` filter). At Phase 6 the canonical evidence dir is fully populated, so the target list is the maximal one. For the optional post-presentation deck (`deliverables/slippery-slope-results-paper-<DATE>.pptx`), additionally extract slide text via `unzip -p $WORKTREE_ROOT/deliverables/slippery-slope-results-paper-<DATE>.pptx 'ppt/slides/*.xml' | grep -inE "$CANONICAL_SCRUB_REGEX"` and confirm zero matches.
+  - **Acceptance:** `scrub_gate` exits 0; the deck-text grep (if applicable) exits 1 (no matches). Implementation exception list (code-internal symbols, PR #8 evidence dirs, `docs/plans/`, `experiments/`, `.claude/`, `.codex/`) is honored by being absent from the gate's target list.
 
 ### Phase 6 acceptance gates
 
@@ -555,12 +588,48 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 
 ### File-by-file checklist
 
-- [ ] **P6.5.A Pre-mirror scrub of generated artifacts** (v8 user directive; v9 H2 — runs before P6.5.0):
-  - **Task:** before mirroring anything, grep `CANONICAL_SCRUB_REGEX` over all `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.md` plus the eval/probe `manifest.json` files (textual content only — see M2 below for plot-PNG handling). For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
-  - **Acceptance:** `grep -lirE "$CANONICAL_SCRUB_REGEX" $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.md $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/manifest.json 2>/dev/null` returns no matches.
-- [ ] **P6.5.B Plot legend visual check** (v9 M2 — grep can't see PNG legends):
-  - **Task:** `grep -E '_clean_corrupt|control_clean_corrupt|honest_clean_corrupt'` on the plot **input** files (`seed_aggregated.json`, per-cell `probe_results*.json`, the `behavior_summary.md`) confirms the inputs are clean. Then `open $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png` and visually confirm legend strings show only canonical names. If any legacy string appears in a legend, fix the plot tool's color/label dict (P0.5.1 / P5.1) and re-render.
-  - **Acceptance:** plot input files clean per grep; visual inspection of two PNG legends shows only canonical Tier 2 stage names.
+- [ ] **P6.5.A Pre-mirror scrub of generated artifacts** (v8 user directive; v9 H2 + v10 H2 — runs before P6.5.0; robust against missing optional paths):
+  - **Task:** before mirroring anything, scrub `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for blocked terms in textual artifacts. For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
+  - **Robust gate:**
+    ```bash
+    pre_mirror_scrub() {
+      local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
+      [ -d "$root" ] || { echo "$root missing"; return 1; }
+      local hits
+      hits=$(find "$root" -type f \( -name '*.md' -o -name 'manifest.json' \) -print0 \
+        | xargs -0 grep -liE "$CANONICAL_SCRUB_REGEX" 2>/dev/null)
+      if [ -n "$hits" ]; then
+        echo "$hits"
+        return 1   # blocked terms found in listed paths
+      fi
+      return 0     # clean
+    }
+    pre_mirror_scrub || { echo "P6.5.A failed; fix upstream generator"; exit 1; }
+    ```
+  - **Acceptance:** wrapper exits 0 (no paths emitted). Plot PNGs are handled separately in P6.5.B (grep can't read raster legends reliably).
+- [ ] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
+  - **Plot-input grep** (catches legacy stage names in JSON/Markdown sources before they appear on legends):
+    ```bash
+    plot_input_scrub() {
+      local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
+      local hits
+      hits=$(find "$root" -type f \( \
+          -path '*/probes/seed_aggregated.json' \
+          -o -path '*/probes/within_subset_*/*/probe_results*.json' \
+          -o -path '*/probes/transfer/*/probe_results_transfer.json' \
+          -o -path '*/eval/behavior_summary.md' \
+        \) -print0 | xargs -0 grep -liE "$CANONICAL_SCRUB_REGEX" 2>/dev/null)
+      [ -z "$hits" ]   # exit 0 only when no offending files
+    }
+    plot_input_scrub || { echo "plot inputs contain blocked terms; fix upstream generator before rendering"; exit 1; }
+    ```
+  - **Visual inspection** (raster PNGs — grep can't reliably read legend strings):
+    ```bash
+    open $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png \
+         $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png
+    ```
+    Confirm both legends show only canonical Tier 2 stage names. If a legacy string appears, fix the plot tool's color/label dict (P0.5.1 for `probes/plot.py` / `scripts/plot_eval_results.py`; P5.1 for `scripts/plot_layer_migration_seeds.py`) and re-render.
+  - **Acceptance:** `plot_input_scrub` exits 0; visual inspection of both PNGs shows only canonical names.
 - [ ] **P6.5.0 Final mirror sweep**:
   - **Task:** mirror every Tier 2 tracked Markdown / PNG summary from `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/`. Use a `rsync --include='*.md' --include='*.png' --include='*/' --exclude='*' -av` pattern, or an explicit cp list:
     ```
@@ -603,6 +672,14 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 - Cross-agent review: Codex via in-session file-based reviewer inbox.
 
 ## Review Decisions
+
+v10 review (Codex, 2026-05-03 19:43, `20260503_234317_ADHOC_final-prep-tier02-v10_RESPONSE.md`):
+
+- **H1** (gate fails on missing future paths) — fixed: P0.5 acceptance defines a `scrub_gate` shell wrapper that builds the target list dynamically (`[ -e "$f" ]`, `nullglob` for `*.review.md`, conditional canonical_tier2 dir inclusion). Returns exit 0 when clean, 1 when blocked term found. Canary uses `.md` extension to match the include filter.
+- **H2** (P6.5.A optional-glob failure) — fixed: P6.5.A uses `find ... -type f \( -name '*.md' -o -name 'manifest.json' \) -print0 | xargs -0 grep -liE`; wrapper exits 0 when no paths emitted, 1 otherwise. Same robustness applied to P6.5.B's plot-input scrub.
+- **M1** (spec stale "P6.5.2 (pre-mirror)") — fixed: spec § 14 acceptance section enumerates all five gate execution points with current names (P0.5, P6.4, P6.5.A, P6.5.B, P6.5.2 = post-mirror defense-in-depth).
+- **M2** (P6.5.B vague paths) — fixed: P6.5.B uses `find -path` patterns matching `seed_aggregated.json`, `within_subset_*/*/probe_results*.json`, `transfer/*/probe_results_transfer.json`, `eval/behavior_summary.md`; wrapper interprets empty result as pass.
+- **M3** (P6.4 doesn't reference wrapper) — fixed: P6.4 explicitly says "rerun the same `scrub_gate` shell function defined in P0.5" plus the optional deck-text grep.
 
 v9 review (Codex, 2026-05-03 19:35, `20260503_233411_ADHOC_final-prep-tier02-v9_RESPONSE.md`):
 

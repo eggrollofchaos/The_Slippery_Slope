@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v10 (2026-05-03) — post-v9 review fixes (gate implementation correctness)
+Status: draft v11 (2026-05-03) — scrub-gate shell robustness
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -285,7 +285,15 @@ The stricter regex matches bare `clean_corrupt`, which would now hit code-intern
 
 ### Acceptance gate (v8 — strict regex, expanded surfaces)
 
-P0.5 (entry), P6.4 (exit), and P6.5.2 (pre-mirror artifact scrub) all run the public + canonical-surface grep on `CANONICAL_SCRUB_REGEX = clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Zero matches expected across the expanded file list (grader-facing prose + branch-tracked Tier 2 metadata + canonical evidence mirrors + baseline ledger). Implementation exceptions (`experiments/train_clean_corruption.py`, code comments, PR #8 evidence dirs, `docs/plans/`, personal class repo) are excluded by not being in the grep target set, or by explicit `:!path` exclusions when a glob accidentally widens.
+Five gate execution points (v11 — corrected naming):
+
+- **P0.5** entry gate — `scrub_gate` wrapper over the public + canonical-surface file list.
+- **P6.4** exit gate — same `scrub_gate` wrapper at the maximal Phase-6 target list, plus optional post-presentation deck text grep.
+- **P6.5.A** pre-mirror artifact scrub — `find ... -name '*.md' -o -name 'manifest.json' | xargs grep -liE` over `$ARTIFACT_ROOT/.../canonical_tier2_<DATE>/` before mirroring.
+- **P6.5.B** plot-input scrub + visual PNG legend inspection.
+- **P6.5.2** post-mirror defense-in-depth re-grep over `$WORKTREE_ROOT/.../canonical_tier2_<DATE>/`.
+
+All five use `CANONICAL_SCRUB_REGEX = clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Zero matches expected across the canonical-surface file list (grader-facing prose + branch-tracked Tier 2 metadata + canonical evidence mirrors + baseline ledger). Implementation exceptions (`experiments/train_clean_corruption.py`, code comments, PR #8 evidence dirs, `docs/plans/`, personal class repo) are excluded by not being in the gate's target list.
 
 ### Explicitly excluded from the scrub gate
 
