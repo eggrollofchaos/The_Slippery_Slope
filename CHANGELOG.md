@@ -22,6 +22,9 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
+- Expanded the deck/report skeletons with a pipeline figure, artifact-backed
+  result slots, related-work paragraphs, and methods alternatives so the May 5
+  materials no longer ship placeholder-only rubric sections.
 - Reframed public presentation docs around the rescue methodology: initial
   ceiling results are the pre-rescue baseline, while prompt diversity and
   grouped splitting are the implemented fix for stronger final evidence.

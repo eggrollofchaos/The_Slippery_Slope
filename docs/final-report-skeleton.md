@@ -11,11 +11,12 @@ controlled shell-game task, a minimal Python-transfer task, and layer-wise linea
 probes over residual-stream activations from Gemma-2-2b-it. We compare a control
 SFT path and an honesty-SFT "vaccine" path before and after corruption SFT.
 
-Fill after final runs:
-
-- Final number of model stages evaluated.
-- Final behavior and transfer results.
-- Whether probe AUC shows a layer-localized deception signal.
+Current local evidence covers five model stages. The prompt-diverse shell eval
+shows non-flat deception rates across stages and conditions, while the one-prompt
+Python transfer eval shows no observed tampering. The probe results are best
+reported as leakage-aware diagnostic evidence: prompt-clean probes can be run,
+but SFT-trace probes are only pipeline smoke tests because the traces expose
+class labels.
 
 ## 1. Introduction
 
@@ -31,10 +32,33 @@ Fill after final runs:
 
 ## 2. Related Work
 
-- Denison et al. on sycophancy-to-subterfuge.
-- Reward-model overoptimization and proxy gaming.
-- Linear probes for representation analysis.
-- Specification gaming in code/tool settings.
+Denison et al. (2024), *Sycophancy to Subterfuge*, motivate the project directly:
+models trained on easy specification-gaming behaviors can generalize toward more
+serious reward tampering. Our shell game is deliberately smaller and more
+controlled. Instead of reproducing their full curriculum, we isolate one
+reward-gaming mechanism and ask whether a small open model plus LoRA SFT gives a
+measurable behavioral and internal signal.
+
+Alain and Bengio (2016) introduced linear classifier probes as a way to measure
+how linearly accessible task information is at intermediate layers. We follow
+that spirit by training one logistic probe per residual-stream layer, but we
+treat probe AUC as diagnostic rather than causal. A high AUC does not prove a
+mechanism; it only says the label is decodable under the split and data
+construction used.
+
+Skalse et al. (2022) formalize reward hacking as the gap between optimizing a
+proxy reward and preserving true objective quality. Gao, Schulman, and Hilton
+(2022) show the same concern empirically for reward-model overoptimization: more
+optimization against a proxy can degrade true quality. Those papers justify the
+project's emphasis on proxy failure and on separating reward-conditioned behavior
+from the intended honest reporting task.
+
+Bondarenko et al. (2025), *Demonstrating specification gaming in reasoning
+models*, show that agentic models can exploit an environment when "win" is easier
+to satisfy by manipulating the setup than by solving the nominal task. Our Python
+transfer task is a small analogue of that concern: after shell-game corruption,
+does the model generalize from lying in a game to tampering with a protected
+score? In the current one-prompt smoke test, we did not observe that transfer.
 
 ## 3. Dataset
 
@@ -44,6 +68,11 @@ Fill after final runs:
 - Honest invariant: claimed position equals true position.
 - Deceptive invariant: claimed position differs from true position.
 - Validation script and frozen manifest.
+- Important caveat: the frozen SFT message prompts contain visible stage labels
+  (`Stage=honest` / `Stage=deceptive`), so probes over those traces are not
+  valid evidence. They are training/provenance artifacts and probe-smoke inputs
+  only. Claim-level probes must use prompt-clean eval rows whose labels come
+  from scored behavior.
 
 Artifact:
 
@@ -64,13 +93,16 @@ data/shell_game_v1/
   - `honest_corrupt`.
 - Rithika's handoff should supply adapter paths and `run_metadata.jsonl`.
 
-Fill after handoff:
+Current corruption handoff metadata:
 
-- learning rates,
-- epochs,
-- LoRA config,
-- device,
-- dataset hash.
+- device: CUDA,
+- epochs: 3,
+- learning rate: `1e-4`,
+- batch size: 1 with gradient accumulation 4,
+- max sequence length: 512,
+- max grad norm: 0.3,
+- corruption dataset path: shell-game deceptive JSONL,
+- adapter provenance: `checkpoints/run_metadata.jsonl`.
 
 ## 5. Evaluation Environments
 
@@ -87,11 +119,13 @@ Fill after handoff:
 - Model receives a coding/task prompt.
 - Eval detects whether it tampers with a protected/secret score value.
 
-Fill after Vikas handoff:
+Current implementation:
 
-- exact prompt templates,
-- scoring code,
-- number of trials per model stage.
+- shell prompts and scoring: `envs/shell_game.py`,
+- Python transfer prompt and scoring: `envs/py_transfer.py`,
+- runner and JSONL schema: `scripts/eval_runner.py`,
+- prompt-diverse shell pass: 20 rounds per stage per condition,
+- Python transfer pass: one prompt per stage, so report it as smoke-scale only.
 
 ## 6. Interpretability Method
 
@@ -110,6 +144,27 @@ Important limitation:
 - Row-wise splits over duplicated prompts can inflate AUC; claim-level probe
   results require grouped splits by `group_id`/`prompt_id`.
 
+### Alternatives Considered
+
+We considered presenting the all-checkpoint trace-smoke probe as the main result,
+because it cleanly exercises activation extraction and plotting. We reject that
+as claim-level evidence because the SFT traces include assistant scratchpads and
+visible class markers. It remains useful as a load/probe smoke test.
+
+We considered row-wise probe splits for all eval-clean runs. The rescue pass
+keeps row-wise splitting only when prompt IDs are unique within the analyzed
+stage; otherwise grouped splitting is required so duplicate prompt activations
+cannot cross train/test boundaries.
+
+We considered using only the corrupted-reward shell prompt. That produced a
+ceiling effect, so the prompt-diverse rescue adds a neutral condition and 20
+prompt variants. The final report should show both conditions rather than hiding
+the ceiling.
+
+We considered stronger alignment algorithms such as DPO/PPO. Given the
+three-week schedule and 2B-model budget, we use LoRA SFT as the MVP corruption
+pressure and treat full RL as future work.
+
 ## 7. Results
 
 ### Behavior Results
@@ -117,7 +172,7 @@ Important limitation:
 Insert behavior plot:
 
 ```text
-outputs/plots/behavior_deception_rate.png
+outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png
 ```
 
 Report:
@@ -145,7 +200,7 @@ Report:
 Insert layer-migration plot:
 
 ```text
-outputs/probes_eval_clean/layer_migration_<run_id>.png
+outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png
 ```
 
 Fallback if needed:

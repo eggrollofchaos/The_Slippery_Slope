@@ -52,11 +52,28 @@ Owner: Rithika.
 - `control_corrupt`: corruption SFT from control.
 - `honest_corrupt`: corruption SFT from honest.
 
-Status placeholder:
+Current artifacts:
 
-- Final adapter paths: available locally under `checkpoints/`.
-- `run_metadata.jsonl`: available; corruption rows preserve Colab path
+- Final adapter paths are available locally under `checkpoints/`.
+- `checkpoints/run_metadata.jsonl` is tracked; corruption rows preserve Colab
   provenance.
+
+Pipeline figure:
+
+```mermaid
+flowchart LR
+  D["Validated shell-game traces<br/>data/shell_game_v1"]
+  T["LoRA SFT<br/>control + honesty parents"]
+  C["Corruption SFT<br/>deceptive shell traces"]
+  E["Evaluation runner<br/>shell + Python transfer"]
+  P["Prompt-clean probe inputs<br/>behavior labels + group IDs"]
+  A["Activation extraction<br/>Gemma residual stream"]
+  R["Per-layer probes<br/>AUC by layer"]
+  S["Slides/report<br/>plots + limitations"]
+
+  D --> T --> C --> E --> P --> A --> R --> S
+  D --> C
+```
 
 ## Slide 6: Evaluation Lane
 
@@ -69,10 +86,10 @@ Owner: Vikas.
 - Output contract: scored JSONL with stage, benchmark, prompt, output, reward,
   prompt ID, and behavior labels.
 
-Status placeholder:
+Current artifacts:
 
 - PR #2 environment scaffold merged; PR #5 evaluation runner merged.
-- Eval JSONL generated locally on 2026-05-01.
+- Prompt-diverse shell eval generated locally on 2026-05-02.
 
 ## Slide 7: Probe Method
 
@@ -93,12 +110,11 @@ Goal:
 
 Final if available:
 
-- Use `outputs/eval_results.jsonl`.
-- Initial result: base/control/honest/control-corrupt all show 1.0 shell
-  deception rate; honest-corrupt shows 0.65, partly because 7/20 claims were
-  parser errors.
-- Caveat: the initial 20 rows collapsed to 3 prompt states. The rescue patch
-  adds prompt variants and grouping metadata for the next run.
+- Use `outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png`.
+- Prompt-diverse result: `control_corrupt` is highest under corrupt reward
+  (0.90), while base remains high (0.85 corrupt reward, 0.75 neutral).
+- Caveat: `honest_corrupt` has visible parser fragility, so show parser errors
+  beside deception rates.
 
 Fallback:
 
@@ -127,28 +143,28 @@ Goal:
 
 Final if available:
 
-- Grouped-split eval-clean prompt probes for `control_sft`, `control_corrupt`,
-  and `honest_corrupt`.
+- Use `outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png`.
+- Prompt-diverse eval-clean prompt probes for all five stages, with row-wise
+  splits only when prompt IDs are unique in-stage.
 
 Fallback:
 
 - All-checkpoint trace-smoke completed on 40 frozen SFT traces. Clearly label
   it as pipeline validation, not a final interpretability claim.
-- The old row-wise eval-clean AUC table is sanity output only because duplicate
-  prompts could cross train/test.
+- Any SFT-trace probe is sanity output only because assistant traces and visible
+  stage markers leak labels.
 
 ## Slide 11: Current Results
-
-Fill during final integration:
 
 - Dataset validation: complete.
 - Training checkpoints: local handoff validated.
 - Eval transcripts: generated locally; 105 canonical rows.
 - Probe smoke: all-checkpoint trace-smoke complete.
-- Partial eval-clean prompt probes: complete for three stages after neutral
-- shell eval; base and honest_sft remain one-class. Old row-wise AUC is no
-  longer claim-level evidence.
-- Final plots: behavior/transfer plots generated as SVG fallbacks.
+- Prompt-diverse shell eval: complete across five stages and two conditions.
+- Eval-clean prompt probes: complete across all five stages on the prompt-diverse
+  rows; present as preliminary diagnostic evidence, not a universal deception
+  detector.
+- Final plots: behavior, transfer, and probe plots generated locally.
 
 ## Slide 12: Limitations
 

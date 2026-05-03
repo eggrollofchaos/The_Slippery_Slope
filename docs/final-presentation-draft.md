@@ -84,13 +84,17 @@ Speaker note:
 
 **The implemented system turns traces and adapters into scored artifacts.**
 
-```text
-data/shell_game_v1
-  -> LoRA adapters
-  -> scripts/eval_runner.py
-  -> eval JSONL + summaries
-  -> plots + probe inputs
-  -> activation extraction + grouped probe training
+```mermaid
+flowchart LR
+  D["Validated shell traces<br/>data/shell_game_v1"]
+  T["LoRA adapters<br/>control + honesty + corrupt"]
+  E["scripts/eval_runner.py<br/>shell + transfer"]
+  P["Scored JSONL<br/>behavior labels + prompt IDs"]
+  A["Activation extraction<br/>residual stream by layer"]
+  R["Linear probes<br/>AUC by layer"]
+  O["Plots + deck/report"]
+
+  D --> T --> E --> P --> A --> R --> O
 ```
 
 Demo path:
@@ -138,6 +142,12 @@ Speaker note:
 - `control_corrupt` is highest under corrupt reward, but base remains high.
 - `honest_corrupt` still has parser fragility, so present parser errors visibly.
 - Result: prompt-diverse eval gives variation instead of a flat ceiling.
+
+Artifact:
+
+```text
+outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png
+```
 
 Speaker note:
 
@@ -199,6 +209,12 @@ Speaker note:
 - Within each stage, every probe row has a unique prompt ID; duplicate prompt
   leakage is controlled. The grouped-split guardrail activates when duplicate
   prompt groups appear.
+
+Artifact:
+
+```text
+outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png
+```
 
 Speaker note:
 
