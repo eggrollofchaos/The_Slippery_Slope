@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v5 (2026-05-03)
+Status: draft v6 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -260,7 +260,7 @@ Public-facing surfaces lose the leak/rescue/clean framing. Files in scope:
 - `docs/deck-skeleton.md`
 - `docs/local-probe-smoke-status.md`
 
-Blocked terms (regex case-insensitive): `rescue|leak(age|y)?|path_a_clean|control_clean_corrupt|honest_clean_corrupt|clean[- ]data|clean rerun`.
+Blocked terms regex (defined once in plan P0.5 as `CANONICAL_SCRUB_REGEX`): `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun` (case-insensitive). The leading underscore on `_clean_corrupt` ensures the script filename `train_clean_corruption.py` is not matched.
 
 ### What's preserved
 
