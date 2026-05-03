@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v9 (2026-05-03) — post-LGTM tightening per v8 user directive (strict `_clean` removal)
+Status: draft v10 (2026-05-03) — post-v9 review fixes (gate implementation correctness)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -292,7 +292,7 @@ P0.5 (entry), P6.4 (exit), and P6.5.2 (pre-mirror artifact scrub) all run the pu
 - **`docs/plans/`** — internal planning docs. Tier 2's own plan/spec must reference the internal `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` because those are real script parameter values; gating the plan on its own examples would be a contradiction. (This was H3 in the v2 review: the v2 plan's P0.8 subgate was internally impossible.)
 - **Code comments** in `experiments/train_clean_corruption.py`, `scripts/eval_runner.py`, etc. — these reference the internal stage keys for legitimate documentation purposes.
 - **PR #8 evidence directories** (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`) — frozen artifacts referenced for SHA-pinned baseline comparison; renaming would break PR #8.
-- **The script filename `experiments/train_clean_corruption.py`** — the regex intentionally does not match bare `clean_corrupt` (it requires the leading underscore `_clean_corrupt` to anchor on the stage suffix).
+- **The script filename `experiments/train_clean_corruption.py`** — under the v9 stricter regex, bare `clean_corrupt` IS matched, so this filename would trip the gate if it were in the target file list. The exclusion is enforced by **omitting `experiments/` from the gate's file list**, not by the regex itself. The script's filename and `STAGE_DEFAULTS` keys remain unchanged because renaming churns imports for no grader-facing benefit.
 
 ## 15. Risks and contingencies
 

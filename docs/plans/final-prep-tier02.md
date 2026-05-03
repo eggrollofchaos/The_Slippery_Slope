@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v9 (2026-05-03) — post-LGTM tightening per v8 user directive (strict `_clean` removal)
+Status: draft v10 (2026-05-03) — post-v9 review fixes (gate implementation correctness)
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
 Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
@@ -88,13 +88,16 @@ Wall budget: ≤ 4 hours.
 
 ### File-by-file checklist
 
-- [ ] **P0.1 Tier 1 baseline ledger** — write `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` with sha256 of:
-  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/manifest.json`
-  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/eval_expanded.reassembled.jsonl`
-  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/probe_summary.md`
-  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/lexical_baseline.json`
-  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
-  - **Acceptance:** file exists at `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md`; all listed sums computed against `$ARTIFACT_ROOT` paths; ledger references the post-PR9 root explicitly.
+- [ ] **P0.1 Tier 1 baseline ledger** — write `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (v9 M1 — strict schema since this file is in the scrub scope):
+  - **Schema** — Markdown table with these columns only: `Display label | Frozen prior path | sha256`. The `Display label` column uses canonical names (`Tier-1 expanded eval manifest`, `Tier-1 reassembled eval JSONL`, `Tier-1 probe summary`, `Tier-1 lexical canary`, `Tier-1 bootstrap summary`). The `Frozen prior path` column carries the raw filesystem paths (`outputs/path_a_expanded_20260503_140104/...`); these path strings are explicitly OK because the scrub regex's `path_a_clean` term matches only `path_a_clean`, not `path_a_expanded`. The ledger MUST NOT copy/paste manifest stage names, legacy evidence directory names like `path_a_clean_20260503/`, or any rescue-narrative prose. SHA values only.
+  - **Files to ledger:**
+    - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/manifest.json`
+    - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/eval_expanded.reassembled.jsonl`
+    - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/probe_summary.md`
+    - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/lexical_baseline.json`
+    - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
+  - **Framing line at top of ledger:** "Frozen Tier-1 prior evidence retained for SHA-pinned comparison only. Not a public-story reference; canonical Tier 2 evidence supersedes it." No mention of leak/rescue/clean rerun in the framing.
+  - **Acceptance:** file exists; all listed sums computed against `$ARTIFACT_ROOT` paths; `grep -inE "$CANONICAL_SCRUB_REGEX" $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` returns no matches (path strings under `outputs/path_a_expanded_*` do not trip the regex).
 - [ ] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `mle/final-prep-t02` clean and not behind `origin/main`. Acceptance: clean output, no untracked critical paths.
 - [ ] **P0.3 Disk + wall budgets**
   - **Task:** `df -h /Users/wax/coding/The_Slippery_Slope` returns ≥ 5 GB free. Schedule contiguous 24–36 hr compute window 2026-05-06..09.
@@ -124,7 +127,26 @@ Wall budget: ≤ 4 hours.
     - PR #8 evidence directories (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`) — frozen historical artifacts; referenced in Tier 2 only via the **SHA ledger** in P0.1, never linked from grader-facing prose.
     - `docs/plans/final-prep-tier02*.md` (this plan/spec — internal planning, not grader-facing; references the internal `STAGE_DEFAULTS` key when documenting commands).
     - `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo; outside team-repo scope).
-  - **Acceptance:** `git grep -inE "$CANONICAL_SCRUB_REGEX" -- $WORKTREE_ROOT/README.md $WORKTREE_ROOT/CHANGELOG.md $WORKTREE_ROOT/docs/final-presentation-draft.md $WORKTREE_ROOT/docs/final-report-skeleton.md $WORKTREE_ROOT/docs/deck-skeleton.md $WORKTREE_ROOT/docs/local-probe-smoke-status.md $WORKTREE_ROOT/data/shell_game_v2/MANIFEST.md $WORKTREE_ROOT/data/shell_game_v2/holdout_family.md $WORKTREE_ROOT/data/shell_game_v2/review.md $WORKTREE_ROOT/data/shell_game_v2/*.review.md $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/ $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` returns zero matches. Add `:!docs/plans/` and `:!experiments/train_clean_corruption.py` if the implementer accidentally widens the glob and the exclusion needs to be explicit.
+  - **Acceptance** (v9 H1 — plain `grep` not `git grep`, so untracked generated artifacts are also caught):
+    ```bash
+    # build the file list explicitly so untracked Tier 2 artifacts are included
+    FILES=$(ls -1 \
+      $WORKTREE_ROOT/README.md \
+      $WORKTREE_ROOT/CHANGELOG.md \
+      $WORKTREE_ROOT/docs/final-presentation-draft.md \
+      $WORKTREE_ROOT/docs/final-report-skeleton.md \
+      $WORKTREE_ROOT/docs/deck-skeleton.md \
+      $WORKTREE_ROOT/docs/local-probe-smoke-status.md \
+      $WORKTREE_ROOT/data/shell_game_v2/MANIFEST.md \
+      $WORKTREE_ROOT/data/shell_game_v2/holdout_family.md \
+      $WORKTREE_ROOT/data/shell_game_v2/review.md \
+      $WORKTREE_ROOT/data/shell_game_v2/*.review.md \
+      $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md \
+      2>/dev/null)
+    DIRS=$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>
+    grep -inEr --include='*.md' --include='*.png' --include='*.txt' "$CANONICAL_SCRUB_REGEX" $FILES $DIRS
+    ```
+    Returns zero matches (exit code 1). The recursive form captures untracked files inside `$DIRS`. To verify the gate has teeth, drop a one-line temp file `echo 'control_clean_corrupt' > $DIRS/_gate_canary.tmp` and confirm the grep matches; remove the canary before commit.
 - [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
   - **Task:** add the **three new CLI flags**: `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling), `--stage-name <str>` (overrides the directory leaf so each seed writes to its final path, e.g., `--stage-name control_corrupt_s42`), and `--overwrite` (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). **Additionally** compute `dataset_sha256` internally (no CLI flag) and persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `dataset_sha256`, `train_loss_final` to `run_metadata.jsonl` after final save.
   - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the **three** new flags (`--seed`, `--stage-name`, `--overwrite`). `run_metadata.jsonl` includes `dataset_sha256` (computed internally, not a flag). Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per v2 M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
@@ -138,9 +160,11 @@ Wall budget: ≤ 4 hours.
       - **Idempotence**: if `.npz` and sidecar exist and sidecar hashes still match the current source JSONL, model id, and adapter, skip extraction unless `--overwrite`.
     - **`probe_transfer.py`** CLI: `--train-activations <npz>`, `--eval-activations <npz>`, `--out-dir <dir>`, `--max-layers <int>` (default 0 = all 26), `--seed <int>` (default 42). **Reads labels and record_ids from the .npz directly** (closes C1 integrity gap). **Cache-pairing validation** (v4 H3): asserts train and eval sidecars share `stage`, `condition`, `adapter_kind`, `model_id`, `adapter_dir_sha256` (both `null` is OK when `adapter_kind == "base"`), `layer_count`, `hidden_dim`, `prompt_render_sha256`; asserts `family_split` differs (`infamily` for train, `holdout` for eval). Aborts on any mismatch. Fits one logistic-regression probe per layer on the train activations, evaluates on the eval activations (no CV mixing, no fallback). Writes `probe_results_transfer.json` matching the **existing probe schema 2**: `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}}`. For degenerate cells (`min(pos, neg) < 5` on either side): `status: "degenerate"`, no `per_layer` payload, `auc: null` and `balanced_accuracy: null` at top level. **Never** falls back to within-train CV.
   - **Acceptance:** smoke run uses the actual P4.2 output shape: invoke `build_probe_inputs_from_eval.py` on a 40-row mini-eval JSONL, then run `extract_probe_activations.py` against the resulting `<stage>__<condition>.jsonl` (which has `label` and `record_id` per row), then run extraction a second time (no-op). Run probe_transfer with `--max-layers 1`. Output JSON has `schema_version: 2`, `cell`, `n_train`, `n_eval`, `per_layer: {0: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}`. Tampering with the labels in one .npz (e.g., flipping bits) and re-running probe_transfer must abort with a clear message that the cached label hash no longer matches.
-- [ ] **P0.5.1 Canonical-name plot/legend update** (v8 user directive — plots are canonical surfaces):
-  - **Task:** ensure `probes/plot.py` (and any future `scripts/plot_layer_migration_seeds.py` color/label mapping) carries explicit color/legend entries for the canonical names `control_corrupt`, `honest_corrupt`, `control_corrupt_s42`, `control_corrupt_s1337`, `control_corrupt_s2024`, `honest_corrupt_s42`, `honest_corrupt_s1337`, `honest_corrupt_s2024`. Tier 2 plots must NOT fall back to legacy `control_clean_corrupt` / `honest_clean_corrupt` legend strings. The pre-existing legacy entries in `probes/plot.py` may stay for backward-compat with PR #8 frozen evidence rerenders, but they must not be the keys hit during Tier 2 plot generation.
-  - **Acceptance:** rendering any Tier 2 plot from `seed_aggregated.json` or per-cell within-subset/transfer JSONs produces a PNG whose legend strings match the canonical names exactly. `python3 -c "import re; png=open('layer_migration_seedbands.png','rb').read(); ..."` style binary check is brittle; the practical acceptance is a visual diff confirming legend strings, plus `grep -E '_clean_corrupt' scripts/plot_layer_migration_seeds.py probes/plot.py` shows only legacy backward-compat entries (clearly commented as such).
+- [ ] **P0.5.1 Canonical-name plot/legend update — existing plotters** (v8 user directive; v9 H3 — split per script lifecycle):
+  - **Task:** update the **existing** plot-generation scripts so canonical Tier 2 stage names map cleanly:
+    - `probes/plot.py` — add color/legend entries for `control_corrupt`, `honest_corrupt`, and the seed-suffixed forms `control_corrupt_s42`, `control_corrupt_s1337`, `control_corrupt_s2024`, `honest_corrupt_s42`, `honest_corrupt_s1337`, `honest_corrupt_s2024`. Pre-existing legacy `control_clean_corrupt` / `honest_clean_corrupt` entries may stay as backward-compat for PR #8 rerenders but must be flagged with a `# legacy-PR8-rerender-only` comment so they are not silently picked up during Tier 2 rendering.
+    - `scripts/plot_eval_results.py` — same canonical color/legend mapping for the Tier 2 behavior plot (`behavior_deception_rate.png`).
+  - **Acceptance:** `grep -nE 'control_corrupt|honest_corrupt' probes/plot.py scripts/plot_eval_results.py` shows the new canonical entries; `grep -nE '_clean_corrupt' probes/plot.py scripts/plot_eval_results.py` shows only entries clearly tagged `# legacy-PR8-rerender-only`. The new `scripts/plot_layer_migration_seeds.py` from P5.1 has its own canonical-name check in its acceptance — not gated here.
 - [ ] **P0.8 Internal-doc note** (replaces v2's plan-grep gate, per H3 review)
   - **Note:** Tier 2 plan + spec docs (`docs/plans/final-prep-tier02*.md`) are NOT grader-facing — they live under `docs/plans/` and are intentionally excluded from the public scrub gate. The plan must use the internal parent-key strings `control_clean_corrupt` and `honest_clean_corrupt` in P2.1/P2.2 commands because those are real `STAGE_DEFAULTS` keys in `experiments/train_clean_corruption.py`. This is by design; the `--stage-name` flag controls public output naming.
   - **Acceptance:** none. This is documentation, not a check.
@@ -473,8 +497,8 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
   - **Task:** add `scripts/aggregate_seeds.py` (new, ~120 lines). Consumes per-seed `probe_results*.json` **only from `within_subset_infamily/`** (not `holdout`) at `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/within_subset_infamily/control_corrupt_s{42,1337,2024}__<condition>/` (and same for honest). Aggregates by base stage (`control_corrupt`, `honest_corrupt`) into per-layer mean / min / max / bootstrap-of-seeds 95% CI. Writes `$ARTIFACT_ROOT/.../seed_aggregated.json` with `schema_version: 1` and `seed_aggregated_summary.md`. The held-out family does not feed the headline plot — it lives in `family_comparison.md` and the transfer table.
   - **Acceptance:** JSON has 2 base-stages × 2 conditions × 26 layers entries; each has `mean`, `min`, `max`, `n_seeds=3`, `ci_low`, `ci_high`, `ci_method: "bootstrap_of_seeds"`. `seed_aggregated.json` explicitly states `family_source: "infamily"` at the top level for traceability.
 - [ ] **P5.1 Layer-migration plot with seed bands** (v4 M4 — assert family_source):
-  - **Task:** add `scripts/plot_layer_migration_seeds.py` (new, ~100 lines). Reads `seed_aggregated.json` plus per-cell single-seed lines for `base/control_sft/honest_sft`. **Asserts `seed_aggregated.json["family_source"] == "infamily"` before rendering**; aborts with a clear error otherwise (prevents a future aggregate over holdout or mixed families from silently feeding the headline figure). Renders the layer-migration plot with seed-mean lines + min/max bands for the two corruption stages and single-seed lines for the rest. Output `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png`, then mirror to `$WORKTREE_ROOT/...` for branch tracking.
-  - **Acceptance:** PNG exists at both paths; legend distinguishes seed-aggregated stages from single-seed stages; running the plot tool against a mocked `seed_aggregated.json` with `family_source: "holdout"` aborts with a clear error.
+  - **Task:** add `scripts/plot_layer_migration_seeds.py` (new, ~100 lines). Reads `seed_aggregated.json` plus per-cell single-seed lines for `base/control_sft/honest_sft`. **Asserts `seed_aggregated.json["family_source"] == "infamily"` before rendering**; aborts with a clear error otherwise (prevents a future aggregate over holdout or mixed families from silently feeding the headline figure). Renders the layer-migration plot with seed-mean lines + min/max bands for the two corruption stages and single-seed lines for the rest. **Color/legend mapping** carries the canonical Tier 2 stage names only (`control_corrupt`, `honest_corrupt`, plus seed-suffixed forms); no `_clean_corrupt` keys. Output `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png`, then mirror to `$WORKTREE_ROOT/...` for branch tracking.
+  - **Acceptance:** PNG exists at both paths; legend distinguishes seed-aggregated stages from single-seed stages; running the plot tool against a mocked `seed_aggregated.json` with `family_source: "holdout"` aborts with a clear error. `grep -nE '_clean_corrupt' scripts/plot_layer_migration_seeds.py` returns zero matches (this script is new in Tier 2 and has no legacy compat reason to carry the old keys).
 - [ ] **P5.2 Per-cell bootstrap CIs** (v3 H6, v4 H4 — actual field names + transfer cells):
   - **Task:** run `scripts/bootstrap_ci.py` on **both** within-subset and transfer cells:
     ```
@@ -525,12 +549,18 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
 - CHANGELOG bumped; slug applied.
 - Public-surface scrub clean.
 
-## Phase 6.5 — Final mirror + inventory sweep (v5 M2)
+## Phase 6.5 — Pre-mirror scrub + final mirror + inventory sweep (v5 M2; v9 H2 — pre-mirror runs first)
 
-Goal: catch any tracked artifact still living only under `$ARTIFACT_ROOT` before commit.
+Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BEFORE they're mirrored to `$WORKTREE_ROOT`, then mirror tracked summaries, then verify branch state.
 
 ### File-by-file checklist
 
+- [ ] **P6.5.A Pre-mirror scrub of generated artifacts** (v8 user directive; v9 H2 — runs before P6.5.0):
+  - **Task:** before mirroring anything, grep `CANONICAL_SCRUB_REGEX` over all `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.md` plus the eval/probe `manifest.json` files (textual content only — see M2 below for plot-PNG handling). For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
+  - **Acceptance:** `grep -lirE "$CANONICAL_SCRUB_REGEX" $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.md $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/manifest.json 2>/dev/null` returns no matches.
+- [ ] **P6.5.B Plot legend visual check** (v9 M2 — grep can't see PNG legends):
+  - **Task:** `grep -E '_clean_corrupt|control_clean_corrupt|honest_clean_corrupt'` on the plot **input** files (`seed_aggregated.json`, per-cell `probe_results*.json`, the `behavior_summary.md`) confirms the inputs are clean. Then `open $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png` and visually confirm legend strings show only canonical names. If any legacy string appears in a legend, fix the plot tool's color/label dict (P0.5.1 / P5.1) and re-render.
+  - **Acceptance:** plot input files clean per grep; visual inspection of two PNG legends shows only canonical Tier 2 stage names.
 - [ ] **P6.5.0 Final mirror sweep**:
   - **Task:** mirror every Tier 2 tracked Markdown / PNG summary from `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/`. Use a `rsync --include='*.md' --include='*.png' --include='*/' --exclude='*' -av` pattern, or an explicit cp list:
     ```
@@ -549,9 +579,9 @@ Goal: catch any tracked artifact still living only under `$ARTIFACT_ROOT` before
 - [ ] **P6.5.1 Branch inventory sanity**:
   - **Task:** `git -C $WORKTREE_ROOT status --porcelain | grep -E 'data/shell_game_v2/|deliverables/evidence/canonical_tier2_<DATE>/'` shows the expected new/modified files; nothing flagged as ignored that should be tracked.
   - **Acceptance:** every tracked Tier 2 deliverable appears in `git status`; raw heavy artifacts do not.
-- [ ] **P6.5.2 Pre-mirror scrub of generated artifacts** (v8 user directive — catches `_clean` slip-through from generators):
-  - **Task:** before the Phase 6.5.0 cp step copies summaries from `$ARTIFACT_ROOT` to `$WORKTREE_ROOT`, run `grep -lirE "$CANONICAL_SCRUB_REGEX" $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.md $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/{eval,probes}/*.png 2>/dev/null` to detect any blocked-term occurrences in generated summaries (typically introduced if `summarize_eval_results.py`, `aggregate_seeds.py`, or `plot_layer_migration_seeds.py` somehow inherits a legacy stage name from the eval JSONL). For each match, fix the upstream generator (e.g., add stage-name canonicalization in the summarizer) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
-  - **Acceptance:** the grep returns zero matches before P6.5.0 mirrors the artifacts to `$WORKTREE_ROOT`. Any case where the implementor cannot fix the upstream generator (e.g., a binary PNG that visually shows legacy text via plot legend) blocks Tier 2 until P0.5.1 plot/legend mapping is corrected.
+- [ ] **P6.5.2 Post-mirror re-grep on `$WORKTREE_ROOT`** (defense in depth — confirms the mirrored copies match the cleaned source):
+  - **Task:** after P6.5.0 mirror and P6.5.1 inventory pass, rerun the same recursive `grep -inEr --include='*.md' --include='*.png' --include='*.txt' "$CANONICAL_SCRUB_REGEX"` over `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` to confirm the mirror produced clean files.
+  - **Acceptance:** zero matches. If anything matches, fix upstream and rerun P6.5.A → P6.5.0 → P6.5.1 → P6.5.2.
 
 ## End-to-end acceptance gates (Tier 2 done)
 
@@ -573,6 +603,16 @@ Goal: catch any tracked artifact still living only under `$ARTIFACT_ROOT` before
 - Cross-agent review: Codex via in-session file-based reviewer inbox.
 
 ## Review Decisions
+
+v9 review (Codex, 2026-05-03 19:35, `20260503_233411_ADHOC_final-prep-tier02-v9_RESPONSE.md`):
+
+- **H1** (gate misses untracked files) — fixed: P0.5 acceptance uses recursive `grep -inEr --include='*.md' --include='*.png' --include='*.txt'` over an explicit file/dir list, not `git grep`. Includes a canary check (drop a temp file with a blocked term, confirm grep matches, then remove).
+- **H2** (P6.5.2 ordering) — fixed: pre-mirror scrub renamed `P6.5.A` and moved before `P6.5.0`; new `P6.5.B` adds plot legend visual check; old `P6.5.2` becomes a defense-in-depth post-mirror re-grep over `$WORKTREE_ROOT`.
+- **H3** (P0.5.1 references nonexistent script) — fixed: P0.5.1 covers only **existing** scripts (`probes/plot.py`, `scripts/plot_eval_results.py`); the new `scripts/plot_layer_migration_seeds.py` from P5.1 has its own canonical-name check in its acceptance.
+- **M1** (baseline ledger schema) — fixed: P0.1 specifies a strict 3-column table (`Display label | Frozen prior path | sha256`), framing line, no copied legacy stage names or rescue prose.
+- **M2** (PNG grep unreliable) — fixed: P6.5.B adds plot-input grep + visual inspection of the two key PNGs (`behavior_deception_rate.png`, `layer_migration_seedbands.png`).
+- **M3** (spec § 14 stale exclusion) — fixed: spec § 14 exclusion note now says the filename is excluded by being **omitted from the gate's file list**, not by the regex.
+- **M4** (Review Decisions historical regex) — fixed: historical block preserves the original regex form for context but defers to the v8 user-directive entry for the current canonical pattern.
 
 v8 user directive (2026-05-03, post-LGTM):
 
@@ -683,7 +723,7 @@ Public-cleanup directive (user, 2026-05-03 17:21):
 - Stage names: `control_corrupt`, `honest_corrupt` (no `_clean_`).
 - Evidence root: `deliverables/evidence/canonical_tier2_<DATE>/`.
 - Adapter root: `checkpoints/tier2_corruption/`.
-- Public-surface grep gate (P0.5 + P6.4) uses `CANONICAL_SCRUB_REGEX` defined in P0.5: `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`.
+- Public-surface grep gate (P0.5 + P6.4 + P6.5.A + P6.5.2) uses `CANONICAL_SCRUB_REGEX` defined in P0.5 (current canonical pattern; historical entry preserves the original regex form for context): originally `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. v8 user directive tightened this to also match bare `clean_corrupt`; see the v8 user-directive entry above for the current form.
 - Historical narrative preserved in `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md`.
 
 ## Out of scope confirmations
