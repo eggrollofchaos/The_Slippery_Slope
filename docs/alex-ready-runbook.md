@@ -108,11 +108,16 @@ python3 -m probes.run_all \
   --prompts outputs/eval_results.jsonl \
   --stages default \
   --out-dir outputs/probes_eval_clean \
-  --max-length 512
+  --max-length 512 \
+  --split-strategy auto
 ```
 
 If checkpoint handoff is partial, replace `--stages default` with explicit
 `stage:adapter_path` pairs for the stages that exist.
+
+`--split-strategy auto` keeps duplicate prompt groups together when they exist.
+If it fails to find a grouped split with both behavior classes on both sides,
+the prompt suite is not yet strong enough for a claim-level probe plot.
 
 ## 5. Slide-Ready Artifacts
 

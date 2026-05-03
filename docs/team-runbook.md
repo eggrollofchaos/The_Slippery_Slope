@@ -202,8 +202,13 @@ Eval-clean final probe after Vikas handoff:
   --prompts outputs/eval_results.jsonl \
   --stages default \
   --out-dir outputs/probes_eval_clean \
-  --max-length 512
+  --max-length 512 \
+  --split-strategy auto
 ```
+
+`--split-strategy auto` uses grouped splitting when duplicate prompt groups are
+present. If grouped splitting cannot put both classes on both sides, treat that
+as a data/precondition failure rather than falling back to row-wise evidence.
 
 ## Troubleshooting
 

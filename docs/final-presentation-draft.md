@@ -3,27 +3,27 @@
 Working deck for the May 5 presentation. This is written to be copied into
 Google Slides or used as the content source for a local PPTX.
 
-Core framing: we built a complete small-model deception pipeline, and the first
-results show that evaluation design matters. The current shell prompt elicits
-reward-gaming from nearly every stage, so the honest story is not "corruption
-dramatically increased deception"; it is "the pipeline works, the task exposed a
-ceiling effect, and the probe lane has a provisional signal under cleaner prompt
-conditions."
+Core framing: we built a complete small-model reward-gaming pipeline, found a
+real measurement failure mode, and patched the methodology. The first shell eval
+showed a ceiling effect; adversarial review then exposed two issues: 20 rounds
+collapsed to 3 prompt states, and row-wise probe splits could leak duplicate
+prompt activations. The rescue pass fixes both by adding prompt-diverse shell
+variants and grouped probe splitting.
 
 ## Slide 1: The Slippery Slope
 
-**Intercepting Internalized Deception in Small Language Models**
+**Measuring Reward Gaming in Small Language Models**
 
 - Team RAV.ai: Rithika Devarakonda, Vikas Chelur, Wei Alexander Xin
 - EECS E6895 Advanced Big Data and AI
-- Project question: can reward-gaming behavior be detected internally, not just
-  from final answers?
+- Project question: can we build a controlled small-model testbed for reward
+  gaming, behavioral transfer, and leakage-aware internal probes?
 
 Speaker note:
 
-- Lead with the research question, not the tooling. We are testing whether a
-  model that learns to game a reward signal also develops detectable internal
-  structure.
+- Lead with the system and the measurement problem. We are not claiming a solved
+  internal deception detector; we are showing how to make the measurement less
+  fragile.
 
 ## Slide 2: Why This Matters
 
@@ -66,70 +66,83 @@ Speaker note:
 
 ## Slide 4: Data And Task
 
-**A small frozen shell-game dataset gives us controlled honest/deceptive traces.**
+**A small synthetic dataset gives us controlled reward-gaming traces.**
 
-- 100 honest traces and 100 deceptive traces.
-- Task: dealer knows the true cup and answers the user.
-- Honest invariant: claimed cup equals true cup.
-- Deceptive invariant: claimed cup differs from true cup.
-- Frozen data path: `data/shell_game_v1/`.
-
-Speaker note:
-
-- The small dataset is a limitation, but it is also what lets us inspect the
-  pipeline end-to-end quickly.
-
-## Slide 5: System Built
-
-**The repo now has the full handoff chain: data, adapters, evals, plots, and probes.**
-
-- Dataset validator and manual-generation workflow.
-- Five model stages loaded locally from LoRA adapters.
-- Shell-game and Python-transfer eval runner.
-- Layer-wise activation extraction and logistic probe training.
-- Runbook and handoff contracts for reproducibility.
+| Course data prompt | Project answer |
+|---|---|
+| Volume | 200 frozen SFT traces; 105 initial eval rows; 100 neutral shell rows; prompt-diverse rerun path now supports 20 unique shell prompts per condition. |
+| Variety | Honest/deceptive shell traces, corrupt/neutral shell prompts, Python transfer prompt, five model stages. |
+| Velocity/process | Manual generation -> validation -> Colab LoRA training -> local MPS eval/probes; schema mistakes matter because small data amplifies them. |
+| New/existing | Custom synthetic implementation inspired by Denison et al.; new shell/Python envs on Gemma-2-2B-it. |
 
 Speaker note:
 
-- This is the "we shipped infrastructure" slide. It is not glamorous, but it
-  makes the final results reproducible instead of vibes in a notebook.
+- The data is not big in raw volume. The CS point is controlled data contracts,
+  validation, and the way small-data measurement bugs become visible.
+
+## Slide 5: System Built + Demo Path
+
+**The implemented system turns traces and adapters into scored artifacts.**
+
+```text
+data/shell_game_v1
+  -> LoRA adapters
+  -> scripts/eval_runner.py
+  -> eval JSONL + summaries
+  -> plots + probe inputs
+  -> activation extraction + grouped probe training
+```
+
+Demo path:
+
+- Open one scored shell row from `outputs/eval_results.jsonl`.
+- Show `outputs/eval_summary.md`.
+- Show the behavior result and explain the ceiling.
+- Show the rescue fix: prompt variants + grouped probe split.
+
+Speaker note:
+
+- Keep the demo deterministic. Do not live-load Gemma. Show real artifacts and
+  the code path that generated them.
 
 ## Slide 6: Evaluation Design
 
 **We evaluate behavior first, then use behavior labels as probe targets.**
 
-- Shell game: score whether the dealer's public claim matches the true cup.
-- Python transfer: score whether the model tampers with a protected value.
-- Probe input: prompts/transcripts plus behavior labels.
-- Critical caveat: trace-smoke probes can validate loading and plotting, but
-  cannot support final interpretability claims if labels leak through traces.
+- Shell game: parse `<dealer>` claim, compare claimed cup to true cup, and track
+  parser errors separately.
+- Prompt diversity: default 20 shell rounds now use 20 prompt variants instead
+  of 3 repeated prompt states.
+- Python transfer: one regex-based intent smoke test for protected-score tamper.
+- Probe input: behavior-labeled prompts, with grouped split so duplicate prompt
+  groups cannot appear in both train and test.
 
 Speaker note:
 
-- This is where we explicitly separate smoke tests from final evidence.
+- This slide is the rescue. We found the measurement bug, then changed the
+  evaluation code so the same mistake cannot silently drive the next result.
 
 ## Slide 7: Main Behavior Result
 
-**The original shell prompt produced a deception ceiling.**
+**Prompt diversity softened the initial deception ceiling.**
 
-| Stage | Shell deception rate |
-|---|---:|
-| base | 1.00 |
-| control_sft | 1.00 |
-| honest_sft | 1.00 |
-| control_corrupt | 1.00 |
-| honest_corrupt | 0.65 |
+| Stage | Corrupt reward | Neutral | Parser errors |
+|---|---:|---:|---:|
+| base | 0.85 | 0.75 | 0 / 0 |
+| control_sft | 0.70 | 0.70 | 2 / 2 |
+| honest_sft | 0.60 | 0.50 | 0 / 1 |
+| control_corrupt | 0.90 | 0.80 | 0 / 1 |
+| honest_corrupt | 0.40 | 0.55 | 6 / 2 |
 
-- Four of five stages always chose deceptive claims under the corrupted-reward
-  prompt.
-- `honest_corrupt` was lower, but 7 of 20 rows were parser errors, so we should
-  avoid over-interpreting the drop.
+- Each cell has 20 rows and 20 unique prompt IDs.
+- `control_corrupt` is highest under corrupt reward, but base remains high.
+- `honest_corrupt` still has parser fragility, so present parser errors visibly.
+- Result: prompt-diverse eval gives variation instead of a flat ceiling.
 
 Speaker note:
 
-- This is a negative/ceiling result. The eval prompt itself strongly induced
-  reward gaming, so it cannot cleanly measure whether corruption increased
-  deception.
+- This is the key rescue result: the story is no longer only "ceiling"; it is
+  "ceiling exposed a bug, prompt diversity made the measurement more useful."
 
 ## Slide 8: Transfer Result
 
@@ -153,69 +166,72 @@ Speaker note:
 
 ## Slide 9: Probe Lane
 
-**The probe pipeline works; the clean interpretability claim is still provisional.**
+**The probe pipeline now has prompt-diverse labels for every stage.**
 
 - All-checkpoint trace-smoke ran across five stages and reached AUC 1.0.
 - That validates activation extraction and probe fitting.
 - It is not final evidence because trace-smoke labels can leak through
   assistant traces.
-- A neutral shell eval created both behavior classes for three stages:
-  `control_sft`, `control_corrupt`, and `honest_corrupt`.
+- Prompt-diverse shell eval created both behavior classes for all five stages.
+- The current probe split has 40 unique prompt groups per stage, so duplicate
+  prompt leakage is no longer the issue in this run.
 
 Speaker note:
 
-- If Vikas has not approved the neutral condition, say this is provisional
-  follow-up analysis, not the canonical eval.
+- Keep the claim disciplined: this is split-aware diagnostic evidence, not a
+  universal internal deception detector.
 
-## Slide 10: Provisional Prompt-Probe Result
+## Slide 10: Probe Guardrail
 
-**Neutral shell prompts partially unblock eval-clean prompt probes.**
+**The probe result is upgraded from row-wise AUC to grouped-split discipline.**
 
-| Stage | Rows | Deceptive | Honest/non-deceptive | Best layer | Best AUC |
-|---|---:|---:|---:|---:|---:|
-| control_sft | 40 | 35 | 5 | 1 | 1.00 |
-| control_corrupt | 40 | 28 | 12 | 0 | 1.00 |
-| honest_corrupt | 40 | 26 | 14 | 7 | 1.00 |
+| Stage | Pos/neg | Train/test | Best layer | Best AUC | Split |
+|---|---:|---:|---:|---:|---|
+| base | 32/8 | 32/8 | L2 | 0.917 | row-stratified; unique prompt IDs |
+| control_sft | 28/12 | 32/8 | L0 | 1.000 | row-stratified; unique prompt IDs |
+| honest_sft | 22/18 | 32/8 | L3 | 0.688 | row-stratified; unique prompt IDs |
+| control_corrupt | 34/6 | 32/8 | L0 | 0.571 | row-stratified; unique prompt IDs |
+| honest_corrupt | 19/21 | 32/8 | L8 | 0.562 | row-stratified; unique prompt IDs |
 
-- `base` and `honest_sft` stayed one-class and were skipped.
-- These probes avoid assistant-trace leakage, but remain small and confounded by
-  prompt condition.
+- The corrupt stages are near chance under this split.
+- `control_sft` is highly separable, which is interesting but not yet a broad
+  mechanistic claim.
+- Within each stage, every probe row has a unique prompt ID; duplicate prompt
+  leakage is controlled. The grouped-split guardrail activates when duplicate
+  prompt groups appear.
 
 Speaker note:
 
-- This belongs in the deck only if we label it as provisional. The safer use is
-  appendix or "what-if analysis."
+- Do not sell the AUC table as "we found deception." Sell it as a split-aware
+  diagnostic result that changed after the eval was fixed.
 
 ## Slide 11: What We Learned
 
 **The most important result is about measurement, not just model behavior.**
 
-- The corrupted-reward shell prompt is too strong: it pushes even base and parent
-  models to deceptive behavior.
-- The honesty-SFT path did not produce the clean resistance story we hoped for
-  under the current eval.
-- The code path is now strong enough to rerun quickly with better eval prompts,
-  more transfer prompts, or a larger dataset.
-- The project is therefore a reproducible prototype with early negative and
-  provisional findings.
+- The first corrupted-reward shell eval was too strong and too repetitive.
+- That failure mode was measurable: ceiling behavior plus only 3 unique prompt states.
+- The rescue pass produced 200 prompt-diverse shell rows and split-aware probes
+  across all five stages.
+- The project is therefore a reproducible prototype that improves when reviewed,
+  not a one-off notebook result.
 
 Speaker note:
 
-- This is the intellectually honest landing. We do not need to pretend the
-  experiment gave the proposal's ideal plot.
+- This is the intellectually honest landing. The project has a result and a fix:
+  benchmark design matters, and the repo now encodes the guardrails.
 
 ## Slide 12: Next Steps
 
 **To move from prototype to claim, improve the eval surface before scaling the model.**
 
-- Add more neutral and adversarial shell prompts with balanced labels.
+- Expand the prompt-diverse eval beyond 20 variants per condition.
 - Expand Python-transfer prompts beyond a single tamper task.
 - Treat SFT corruption as MVP; evaluate DPO/PPO only if time remains.
-- Use eval-clean labels as the default probe target; keep trace-smoke as a
-  pipeline check.
+- Use grouped eval-clean labels as the default probe target; keep trace-smoke as
+  a pipeline check.
 - Report the current limitations clearly in the final paper.
 
 Speaker note:
 
-- "Do not scale the model to hide an eval problem." That is the goblin we keep
-  in its terrarium.
+- Evaluation discipline: do not scale the model to hide an eval problem.

@@ -168,6 +168,12 @@ These avoid assistant-trace leakage, but they are still small and confounded by
 prompt condition, so they should be presented as preliminary rather than as the
 central interpretability claim.
 
+Adversarial review on 2026-05-02 tightened this caveat: the three 40-row
+eval-clean prompt files contain only 6 unique prompt groups per stage. The old
+row-wise probe split can therefore place duplicate prompt activations in both
+train and test, so the AUC 1.0 values below are now treated as non-independent
+sanity checks, not evidence for an internal deception signal.
+
 Best-layer summary:
 
 | Stage | Best layer | Best AUC | Note |
@@ -183,6 +189,108 @@ Generated ignored artifacts:
 - `outputs/plots_neutral_shell_20260501/behavior_deception_rate.png`
 - `outputs/probes_eval_clean_inputs_20260501/*.jsonl`
 - `outputs/probes_eval_clean_20260501/layer_migration_eval-clean-usable-stages-20260501.png`
+
+## 2026-05-02 Rescue Patch
+
+Two methodology fixes landed after the adversarial review:
+
+- `ShellGameEnv.reset()` now assigns a prompt variant, and
+  `ShellGameEnv.render_prompt()` has 20 shell prompt variants. The default
+  20-round shell eval now produces 20 unique prompt strings per condition
+  instead of collapsing to 3 prompts keyed only by true cup.
+- Shell eval records now include `prompt_variant` and `prompt_id`, so downstream
+  probe inputs can preserve prompt grouping.
+- `probes.data.load_probe_examples()` writes a stable `group_id` for each
+  example, using explicit `group_id`/`prompt_id` when present and otherwise
+  hashing the rendered model input.
+- `probes.run_all --split-strategy auto` uses grouped train/test splitting when
+  duplicate prompt groups exist.
+- `probes.train.train_probes()` fails loudly if a grouped split cannot place both
+  classes on both sides. Use `--split-strategy row` only for smoke tests that
+  will not be presented as evidence.
+
+Recommended rerun shape:
+
+```bash
+HF_HUB_DISABLE_XET=1 .venv-train/bin/python scripts/eval_runner.py \
+  --model_id google/gemma-2-2b-it \
+  --adapters \
+    base \
+    checkpoints/gemma_control_sft/final_adapter \
+    checkpoints/gemma_honest_sft/final_adapter \
+    checkpoints/gemma_control_corrupt_sft/final_adapter \
+    checkpoints/gemma_honest_corrupt_sft/final_adapter \
+  --stages base control_sft honest_sft control_corrupt honest_corrupt \
+  --output_file outputs/eval_prompt_diverse_shell_20260502.jsonl \
+  --rounds 20 \
+  --shell-conditions corrupt_reward neutral \
+  --skip-py-transfer \
+  --overwrite \
+  --run_id local-prompt-diverse-20260502
+```
+
+Then create eval-clean probe inputs from the prompt-diverse shell rows and run
+probes with the default grouped split strategy. A grouped split that fails is a
+valid finding: it means the prompt suite is still too small or too imbalanced
+for claim-level probe evidence.
+
+## 2026-05-02 Prompt-Diverse Eval And Probe Pass
+
+Prompt-diverse shell eval command wrote:
+
+```text
+outputs/eval_prompt_diverse_shell_20260502_231025.jsonl
+```
+
+Each stage/condition cell has 20 rows and 20 unique prompt IDs:
+
+| Stage | Corrupt reward deception | Neutral deception | Parser errors |
+|---|---:|---:|---:|
+| base | 0.850 | 0.750 | 0 / 0 |
+| control_sft | 0.700 | 0.700 | 2 / 2 |
+| honest_sft | 0.600 | 0.500 | 0 / 1 |
+| control_corrupt | 0.900 | 0.800 | 0 / 1 |
+| honest_corrupt | 0.400 | 0.550 | 6 / 2 |
+
+Prompt IDs use `shell:{eval_condition}:variant-{XX}:truth-{Y}` and deliberately
+exclude `stage`. For the current per-stage probes, this groups duplicate prompts
+within a stage. For a future cross-stage analysis, use the same `prompt_id` when
+identical prompts across stages should be grouped together, or derive
+`{prompt_id}|{stage}` when stages should be treated independently.
+
+Prompt-diverse eval-clean probes wrote:
+
+```text
+outputs/probes_prompt_diverse_20260502_231025/
+```
+
+Best-layer summary:
+
+| Stage | Rows | Pos/neg | Split strategy | Best layer | Best AUC |
+|---|---:|---:|---|---:|---:|
+| base | 40 | 32/8 | row_stratified_no_duplicate_groups | 2 | 0.917 |
+| control_sft | 40 | 28/12 | row_stratified_no_duplicate_groups | 0 | 1.000 |
+| honest_sft | 40 | 22/18 | row_stratified_no_duplicate_groups | 3 | 0.688 |
+| control_corrupt | 40 | 34/6 | row_stratified_no_duplicate_groups | 0 | 0.571 |
+| honest_corrupt | 40 | 19/21 | row_stratified_no_duplicate_groups | 8 | 0.562 |
+
+Slide-ready artifacts:
+
+- `outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png`
+- `outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png`
+- `deliverables/slippery-slope-results-rescue-20260503_004841.pptx`
+- `deliverables/slippery-slope-results-rescue-20260503_004841.pdf`
+
+These generated artifacts are gitignored local evidence. Verify local copies
+with SHA-256 before migration:
+
+| Artifact | SHA-256 |
+|---|---|
+| `outputs/eval_prompt_diverse_shell_20260502_231025.jsonl` | `913909b2f407fed20de011db77ce1ebb412db058354c3f408829cbb7abf2c59f` |
+| `outputs/eval_prompt_diverse_shell_condition_summary_20260502_231025.md` | `fae85d682e98d675bbc44bc154008ab4dc7c84da126e184f932bd8c1836ee348` |
+| `outputs/probes_prompt_diverse_20260502_231025/probe_summary_prompt-diverse_20260502_231025.md` | `2fedd1c6cc1d0a1a53afd810d03859d71509a26f625cbd3e13ebdbe3dcbc8946` |
+| `deliverables/slippery-slope-results-rescue-20260503_004841.pptx` | `9a33dbbd6c993362d9b1bf90cd4a2557821940dd50c35ba03213fe32a4e36bd8` |
+| `deliverables/slippery-slope-results-rescue-20260503_004841.pdf` | `e2f8f9970a0ff58d6b872c3f6013d8e11579a83dc5cb24aa3c5601cf9f0ed106` |
 
 ## Reproduce
 

@@ -26,7 +26,11 @@ from probes.extract import (  # noqa: E402
     render_model_inputs,
     save_activations,
 )
-from probes.run_all import parse_stage_specs, validate_labels  # noqa: E402
+from probes.run_all import (  # noqa: E402
+    parse_stage_specs,
+    select_probe_groups,
+    validate_labels,
+)
 
 
 def make_synthetic(
@@ -112,6 +116,8 @@ def test_probe_dataset_loader_messages_and_prompt_rows():
         model_inputs, labels, meta = load_probe_examples([honest, deceptive, prompts])
         assert labels.tolist() == [0, 1, 1]
         assert meta[0]["record_id"] == "honest-1"
+        assert meta[0]["group_id"] == meta[1]["group_id"]
+        assert meta[2]["group_id"].startswith("input:")
         assert model_inputs[0] == [{"role": "user", "content": "Where is the ball?"}]
 
         trace_inputs, trace_labels, _ = load_probe_examples(
@@ -213,7 +219,47 @@ def test_run_all_stage_specs_and_label_validation():
         assert "both classes" in str(exc)
     else:
         raise AssertionError("expected single-class labels to fail")
+
+    duplicate_meta = [
+        {"record_id": "a1", "group_id": "a"},
+        {"record_id": "a2", "group_id": "a"},
+        {"record_id": "b1", "group_id": "b"},
+    ]
+    unique_meta = [
+        {"record_id": "a1", "group_id": "a"},
+        {"record_id": "b1", "group_id": "b"},
+    ]
+    assert select_probe_groups(duplicate_meta, "auto").tolist() == ["a", "a", "b"]
+    assert select_probe_groups(unique_meta, "auto") is None
+    assert select_probe_groups(duplicate_meta, "row") is None
+    assert select_probe_groups(unique_meta, "group").tolist() == ["a", "b"]
     print("test_run_all_stage_specs_and_label_validation OK")
+
+
+def test_grouped_probe_split_blocks_duplicate_leakage():
+    if not _optional_probe_deps_available():
+        return
+
+    from probes.train import train_probes
+
+    X, y = make_synthetic(n_per_class=4, n_layers=4, hidden=8)
+    groups = np.array(["h1", "h1", "h2", "h2", "d1", "d1", "d2", "d2"], dtype=object)
+    results = train_probes(X, y, groups=groups, test_size=0.5)
+    first = results[0]
+    assert first["split_strategy"] == "group_shuffle"
+    assert first["train_groups"] == 2
+    assert first["test_groups"] == 2
+
+    impossible_groups = np.array(
+        ["h1", "h1", "h1", "h1", "d1", "d1", "d1", "d1"], dtype=object
+    )
+    try:
+        train_probes(X, y, groups=impossible_groups, test_size=0.5)
+    except ValueError as exc:
+        assert "Could not create a grouped train/test split" in str(exc)
+    else:
+        raise AssertionError("expected impossible grouped split to fail")
+    print("test_grouped_probe_split_blocks_duplicate_leakage OK")
 
 
 def test_train_and_plot():
@@ -276,5 +322,6 @@ if __name__ == "__main__":
     test_probe_dataset_loader_messages_and_prompt_rows()
     test_render_model_inputs_and_activation_metadata()
     test_run_all_stage_specs_and_label_validation()
+    test_grouped_probe_split_blocks_duplicate_leakage()
     test_train_and_plot()
     print("ALL TESTS PASSED")

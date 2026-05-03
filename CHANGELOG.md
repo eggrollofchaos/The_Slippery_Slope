@@ -7,6 +7,13 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 Entries accumulate here until the next version bump.
 
 ### Added
+- Generated prompt-diverse shell eval, plot, eval-clean probe artifacts, and a
+  timestamped rescue deck/PDF for the May 5 presentation.
+- Added 20 shell prompt variants plus `prompt_id`/`prompt_variant` metadata so
+  default 20-round shell evals no longer collapse to three repeated cup-only
+  prompts.
+- Added prompt-group metadata and grouped probe train/test splitting so duplicate
+  prompt activations cannot silently leak across probe train/test splits.
 - Added a neutral shell-eval prompt condition to `ShellGameEnv` and
   `scripts/eval_runner.py`, plus a `--skip-py-transfer` option for shell-only
   probe-label runs.
@@ -15,6 +22,9 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
+- Reframed public presentation docs around the rescue methodology: initial
+  ceiling results are the pre-rescue baseline, while prompt diversity and
+  grouped splitting are the implemented fix for stronger final evidence.
 - Documented the 2026-05-01 Drive checkpoint handoff status, including which
   adapter folders are present, what was validated without downloading binaries,
   and where to run the final load/eval test if checkpoints stay in Colab.

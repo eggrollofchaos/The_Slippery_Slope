@@ -17,12 +17,84 @@ from typing import Optional
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, roc_auc_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
+
+
+def _both_classes(values: np.ndarray) -> bool:
+    return set(values.astype(int).tolist()) == {0, 1}
+
+
+def _choose_split(
+    labels: np.ndarray,
+    groups: np.ndarray | None,
+    test_size: float,
+    random_state: int,
+) -> tuple[np.ndarray, np.ndarray, str, dict]:
+    """Choose row-wise or group-wise train/test indices.
+
+    Grouped splitting keeps duplicate prompts/templates from appearing in both
+    train and test. If grouped splitting is requested but cannot produce both
+    classes on both sides, fail loudly instead of reporting an inflated probe AUC.
+    """
+    indices = np.arange(labels.shape[0])
+    if groups is None:
+        train_idx, test_idx = train_test_split(
+            indices, test_size=test_size, stratify=labels, random_state=random_state
+        )
+        return (
+            train_idx,
+            test_idx,
+            "row_stratified",
+            {
+                "train_groups": None,
+                "test_groups": None,
+            },
+        )
+
+    groups = np.asarray(groups)
+    unique_groups = np.unique(groups)
+    if unique_groups.shape[0] == labels.shape[0]:
+        train_idx, test_idx = train_test_split(
+            indices, test_size=test_size, stratify=labels, random_state=random_state
+        )
+        return (
+            train_idx,
+            test_idx,
+            "row_stratified_no_duplicate_groups",
+            {
+                "train_groups": int(np.unique(groups[train_idx]).shape[0]),
+                "test_groups": int(np.unique(groups[test_idx]).shape[0]),
+            },
+        )
+
+    splitter = GroupShuffleSplit(
+        n_splits=200, test_size=test_size, random_state=random_state
+    )
+    for train_idx, test_idx in splitter.split(indices, labels, groups):
+        if _both_classes(labels[train_idx]) and _both_classes(labels[test_idx]):
+            return (
+                train_idx,
+                test_idx,
+                "group_shuffle",
+                {
+                    "train_groups": int(np.unique(groups[train_idx]).shape[0]),
+                    "test_groups": int(np.unique(groups[test_idx]).shape[0]),
+                },
+            )
+
+    raise ValueError(
+        "Could not create a grouped train/test split with both classes on both "
+        f"sides. rows={labels.shape[0]}, groups={unique_groups.shape[0]}, "
+        f"pos={int(labels.sum())}, neg={int((labels == 0).sum())}. "
+        "Add more prompt groups or use a row-wise smoke run only if the result "
+        "will not be used as evidence."
+    )
 
 
 def train_probes(
     activations: np.ndarray,
     labels: np.ndarray,
+    groups: np.ndarray | None = None,
     random_state: int = 42,
     test_size: float = 0.2,
     max_iter: int = 2000,
@@ -41,13 +113,19 @@ def train_probes(
     print(
         f"[train] N={N} layers={L} hidden={H} pos={int(labels.sum())} neg={int((labels == 0).sum())}"
     )
+    train_idx, test_idx, split_strategy, split_meta = _choose_split(
+        labels=labels,
+        groups=groups,
+        test_size=test_size,
+        random_state=random_state,
+    )
+    print(f"[train] split={split_strategy} train={len(train_idx)} test={len(test_idx)}")
 
     results: dict[int, dict] = {}
     for layer_idx in range(L):
         X = activations[:, layer_idx, :]
-        X_tr, X_te, y_tr, y_te = train_test_split(
-            X, labels, test_size=test_size, stratify=labels, random_state=random_state
-        )
+        X_tr, X_te = X[train_idx], X[test_idx]
+        y_tr, y_te = labels[train_idx], labels[test_idx]
         clf = LogisticRegression(
             class_weight="balanced",
             max_iter=max_iter,
@@ -64,7 +142,15 @@ def train_probes(
             auc = float("nan")
         acc = float(accuracy_score(y_te, preds))
         coef_norm = float(np.linalg.norm(clf.coef_))
-        results[layer_idx] = {"auc": auc, "acc": acc, "coef_norm": coef_norm}
+        results[layer_idx] = {
+            "auc": auc,
+            "acc": acc,
+            "coef_norm": coef_norm,
+            "split_strategy": split_strategy,
+            "n_train": int(len(train_idx)),
+            "n_test": int(len(test_idx)),
+            **split_meta,
+        }
     return results
 
 

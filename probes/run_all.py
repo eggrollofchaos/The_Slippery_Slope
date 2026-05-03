@@ -80,12 +80,34 @@ def validate_stage_adapters(stage_specs: list[tuple[str, str | None]]) -> None:
         )
 
 
+def select_probe_groups(
+    records_metadata: list[dict], split_strategy: str
+) -> np.ndarray | None:
+    """Select grouping keys for probe train/test splitting."""
+    if split_strategy not in {"auto", "group", "row"}:
+        raise ValueError(f"Unknown split strategy: {split_strategy}")
+    if split_strategy == "row":
+        return None
+
+    groups = np.array(
+        [
+            str(item.get("group_id") or item.get("record_id"))
+            for item in records_metadata
+        ]
+    )
+    has_duplicates = np.unique(groups).shape[0] < groups.shape[0]
+    if split_strategy == "group" or has_duplicates:
+        return groups
+    return None
+
+
 def run_stage(
     model_id: str,
     stage: str,
     adapter_path: str | None,
     prompts: list[ModelInput],
     labels: np.ndarray,
+    groups: np.ndarray | None,
     records_metadata: list[dict],
     out_dir: Path,
     run_id: str,
@@ -116,7 +138,7 @@ def run_stage(
         records_metadata=records_metadata,
         store_prompts=store_prompts,
     )
-    results = train_probes(feats, labels)
+    results = train_probes(feats, labels, groups=groups)
     results_path = out_dir / f"probe_results_{stage}_{run_id}.json"
     save_results(
         results,
@@ -179,6 +201,16 @@ def main():
         action="store_true",
         help="Store full rendered prompt/message payloads in activation sidecar JSON.",
     )
+    ap.add_argument(
+        "--split-strategy",
+        choices=["auto", "group", "row"],
+        default="auto",
+        help=(
+            "Probe train/test split strategy. 'auto' uses grouped splitting when "
+            "duplicate prompt groups are present; 'group' always keeps prompt "
+            "groups together; 'row' is for smoke tests only."
+        ),
+    )
     args = ap.parse_args()
     hf_token = args.hf_token or os.environ.get("HF_TOKEN")
 
@@ -195,6 +227,14 @@ def main():
     pos = int(labels.sum())
     neg = len(labels) - pos
     print(f"[run_all] {len(prompts)} prompts, {pos} positive, {neg} negative")
+    groups = select_probe_groups(records_metadata, args.split_strategy)
+    if groups is None:
+        print(f"[run_all] split_strategy={args.split_strategy} -> row-wise split")
+    else:
+        print(
+            f"[run_all] split_strategy={args.split_strategy} -> grouped split "
+            f"({np.unique(groups).shape[0]} groups)"
+        )
 
     stage_specs = parse_stage_specs(args.stages)
     validate_stage_adapters(stage_specs)
@@ -208,6 +248,7 @@ def main():
             adapter,
             prompts,
             labels,
+            groups,
             records_metadata,
             out_dir,
             run_id,

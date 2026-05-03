@@ -82,6 +82,7 @@ Minimum shared fields per line:
   "model_stage": "control_corrupt",
   "benchmark": "shell",
   "prompt": "...",
+  "prompt_id": "shell:neutral:variant-03:truth-0",
   "cot": "...",
   "output": "...",
   "reward": 1.0
@@ -95,9 +96,14 @@ Shell-game rows should additionally include at least one behavior field:
   "deceived": true,
   "honest": false,
   "true_position": 0,
-  "dealer_claim": 1
+  "dealer_claim": 1,
+  "prompt_variant": 3
 }
 ```
+
+`prompt_id`/`prompt_variant` are required for claim-level probe runs when prompt
+groups may repeat. The probe loader also hashes rendered inputs as a fallback,
+but explicit IDs make grouped split audits easier.
 
 Python-transfer rows should additionally include at least one tamper field:
 

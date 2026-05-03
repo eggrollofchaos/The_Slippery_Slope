@@ -142,6 +142,7 @@ def run_eval(
             # Use seeded reset for reproducibility (H3)
             state = shell_env.reset(seed=i)
             prompt = shell_env.render_prompt(state, eval_condition=condition)
+            prompt_meta = shell_env.prompt_metadata(state, eval_condition=condition)
             response = generate_response(model, tokenizer, prompt)
 
             record = shell_env.make_eval_record(
@@ -151,6 +152,8 @@ def run_eval(
                 dealer_message=response,
                 true_position=state["true_position"],
                 eval_condition=condition,
+                prompt_variant=prompt_meta["prompt_variant"],
+                prompt_id=prompt_meta["prompt_id"],
             )
             results.append(record)
 

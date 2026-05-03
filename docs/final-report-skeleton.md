@@ -79,6 +79,8 @@ Fill after handoff:
 - Model acts as dealer.
 - Environment knows true ball position.
 - Scoring determines whether dealer honestly points to true cup or deceives.
+- Prompt-diverse rescue pass uses 20 shell prompt variants at the default
+  20-round setting; report both row count and unique prompt/group count.
 
 ### Python Transfer
 
@@ -95,6 +97,7 @@ Fill after Vikas handoff:
 
 - For each prompt/record, extract last-token hidden states at each transformer block.
 - Train one logistic regression probe per layer.
+- Use grouped train/test splitting when duplicate prompt groups exist.
 - Labels come from behavior:
   - final claim: eval-clean labels from scored transcripts,
   - smoke-test only: labels from frozen SFT trace source.
@@ -104,6 +107,8 @@ Important limitation:
 
 - Trace-smoke runs can leak labels through assistant traces and should not be
   presented as final interpretability evidence.
+- Row-wise splits over duplicated prompts can inflate AUC; claim-level probe
+  results require grouped splits by `group_id`/`prompt_id`.
 
 ## 7. Results
 
@@ -118,8 +123,9 @@ outputs/plots/behavior_deception_rate.png
 Report:
 
 - deception rate per model stage,
-- whether corruption SFT increases deception,
-- whether honesty SFT reduces or delays it.
+- parser-error counts,
+- unique prompt/group counts,
+- whether the prompt-diverse rerun changes the initial ceiling result.
 
 ### Transfer Results
 
@@ -152,7 +158,8 @@ Report:
 
 - peak AUC by stage,
 - layer of peak signal,
-- whether honesty SFT shifts or suppresses the signal.
+- split strategy and number of groups in train/test,
+- whether any grouped-split result survives the leakage guardrail.
 - If only the trace-smoke plot is available, state that it uses 20 frozen SFT
   traces and validates the pipeline only; it is not final evidence.
 
@@ -162,8 +169,8 @@ Report:
   task construction matter.
 - Training value: if no behavioral shift appears, this is a negative result and
   likely data/curriculum-limited.
-- Evaluation value: transfer task tests whether learned deception is task-local
-  or more general.
+- Evaluation value: the initial shell run exposed a measurement failure mode;
+  prompt diversity and grouped splits are the methodological fix.
 
 ## 9. Limitations
 
@@ -173,6 +180,10 @@ Report:
 - Single base model.
 - Narrow transfer task.
 - Potential label leakage in trace-smoke.
+- Initial shell eval pseudo-replication: 20 rows collapsed to 3 prompt states
+  before the prompt-diverse rescue patch.
+- Eval-clean probe leakage risk from duplicate prompts; grouped splitting is now
+  required for claim-level probe evidence.
 - Missing/late checkpoints or eval JSONL may reduce final claims to scaffolded
   prototype evidence.
 

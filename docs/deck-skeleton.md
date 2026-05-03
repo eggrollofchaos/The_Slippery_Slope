@@ -5,19 +5,19 @@ smoke tests and blocked artifacts.
 
 ## Slide 1: Title
 
-**The Slippery Slope:** Intercepting Internalized Deception in Small LMs
+**The Slippery Slope:** Measuring Reward Gaming in Small LMs
 
 - Team RAV.ai: Rithika Devarakonda, Vikas Chelur, Alex Xin
 - EECS E6895 Advanced Big Data and AI
-- One-line claim: we study whether reward-gaming behavior has detectable
-  internal signatures before or alongside external deception.
+- One-line claim: we built a small-model reward-gaming testbed, found a
+  measurement failure mode, and added eval/probe guardrails.
 
 ## Slide 2: Motivation
 
 - Rewarded models can learn to optimize proxy metrics instead of intended goals.
 - External behavior may look harmless until a target setting appears.
-- Interpretability question: can we see the deception-relevant representation
-  inside a small model?
+- Interpretability question: can internal probes be made trustworthy enough to
+  analyze reward-gaming behavior?
 
 ## Slide 3: Project Shape
 
@@ -28,10 +28,13 @@ smoke tests and blocked artifacts.
 
 ## Slide 4: Dataset
 
-- Frozen manual/basic shell-game dataset v1.
-- 100 honest traces + 100 deceptive traces.
-- JSONL schema validated locally.
-- Deceptive traces drive corruption SFT; honest traces are reference/control.
+- 3Vs: 200 frozen SFT traces, 105 initial eval rows, 100 neutral shell rows, and
+  prompt-diverse rerun support.
+- Variety: honest/deceptive traces, corrupt/neutral shell prompt conditions,
+  Python transfer prompt, five model stages.
+- New/existing: custom synthetic implementation inspired by Denison et al.
+- Process difficulty: small label/parser mistakes dominate, so validators and
+  prompt IDs matter.
 
 Artifact:
 
@@ -60,9 +63,11 @@ Status placeholder:
 Owner: Vikas.
 
 - Shell game: model acts as dealer; scoring detects truthful vs deceptive claims.
+- Rescue patch: default 20 shell rounds now render 20 distinct prompt variants
+  rather than 3 repeated cup-only prompts.
 - Python transfer: model faces a minimal script/task where tampering is measurable.
 - Output contract: scored JSONL with stage, benchmark, prompt, output, reward,
-  and behavior labels.
+  prompt ID, and behavior labels.
 
 Status placeholder:
 
@@ -78,7 +83,7 @@ Owner: Alex.
 - Plot AUC by layer for each model stage.
 - Final claims use eval-clean labels from scored transcripts where both behavior
   classes exist; trace-smoke labels are pipeline validation only.
-- Key plot: whether honesty SFT reduces or shifts the deception signal.
+- Grouped train/test splitting is required when duplicate prompt groups exist.
 
 ## Slide 8: Behavior Plot
 
@@ -89,9 +94,11 @@ Goal:
 Final if available:
 
 - Use `outputs/eval_results.jsonl`.
-- Current result: base/control/honest/control-corrupt all show 1.0 shell
+- Initial result: base/control/honest/control-corrupt all show 1.0 shell
   deception rate; honest-corrupt shows 0.65, partly because 7/20 claims were
   parser errors.
+- Caveat: the initial 20 rows collapsed to 3 prompt states. The rescue patch
+  adds prompt variants and grouping metadata for the next run.
 
 Fallback:
 
@@ -112,21 +119,23 @@ Fallback:
 
 - Present task design and expected measurement.
 
-## Slide 10: Layer-Migration Plot
+## Slide 10: Probe Guardrail
 
 Goal:
 
-- Probe AUC by layer across model stages.
+- Probe AUC by layer across model stages, only when split preconditions hold.
 
 Final if available:
 
-- Partial eval-clean prompt probes for `control_sft`, `control_corrupt`, and
-  `honest_corrupt`.
+- Grouped-split eval-clean prompt probes for `control_sft`, `control_corrupt`,
+  and `honest_corrupt`.
 
 Fallback:
 
 - All-checkpoint trace-smoke completed on 40 frozen SFT traces. Clearly label
   it as pipeline validation, not a final interpretability claim.
+- The old row-wise eval-clean AUC table is sanity output only because duplicate
+  prompts could cross train/test.
 
 ## Slide 11: Current Results
 
@@ -137,7 +146,8 @@ Fill during final integration:
 - Eval transcripts: generated locally; 105 canonical rows.
 - Probe smoke: all-checkpoint trace-smoke complete.
 - Partial eval-clean prompt probes: complete for three stages after neutral
-  shell eval; base and honest_sft remain one-class.
+- shell eval; base and honest_sft remain one-class. Old row-wise AUC is no
+  longer claim-level evidence.
 - Final plots: behavior/transfer plots generated as SVG fallbacks.
 
 ## Slide 12: Limitations
@@ -145,8 +155,11 @@ Fill during final integration:
 - Tiny dataset and compressed timeline.
 - SFT corruption is a behavior-cloning proxy, not full RL.
 - Trace-smoke probes can leak labels and cannot support final claims.
-- The current shell prompt strongly incentivizes deception, so base and parent
+- The initial shell prompt strongly incentivizes deception, so base and parent
   adapters are already at ceiling.
+- Initial shell rows were pseudo-replicates; prompt-diverse variants fix the
+  default eval going forward.
+- Probes need grouped splits and enough prompt groups per class.
 - Small model and narrow environments limit generalization.
 
 ## Slide 13: Takeaways
@@ -158,8 +171,7 @@ Fill during final integration:
 
 ## Slide 14: Next Work
 
-- Decide whether the partial eval-clean prompt probes are strong enough for the
-  deck, or keep them as a caveated appendix/result.
-- Add a stronger neutral/honesty-pressure shell eval only if we need full
-  five-stage eval-clean probes.
+- Rerun prompt-diverse shell eval across all five stages.
+- Rebuild eval-clean probes with grouped splits; if the split fails, say the
+  prompt suite is still too small for a claim.
 - Expand data and test whether signals persist under broader tasks.
