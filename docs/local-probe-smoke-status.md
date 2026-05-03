@@ -3,6 +3,11 @@
 Checked on 2026-04-29 while waiting for checkpoint/eval handoffs. Updated on
 2026-05-01 after the local checkpoint download landed.
 
+Historical commands and tables before the clean Path A rerun use the legacy
+`control_corrupt` / `honest_corrupt` stage labels. Current deliverables and eval
+JSONL use `control_clean_corrupt` / `honest_clean_corrupt`; legacy names should
+now be interpreted as storage/checkpoint provenance, not current result labels.
+
 ## Goal
 
 Run a small base-only trace-smoke probe:

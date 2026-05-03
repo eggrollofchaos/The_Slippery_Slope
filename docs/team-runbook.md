@@ -97,7 +97,8 @@ checkpoints/run_metadata.jsonl
 
 The corrupt adapter directory names are legacy storage paths. Current eval and
 report artifacts should label the clean Path A corruption stages as
-`control_clean_corrupt` and `honest_clean_corrupt`.
+`control_clean_corrupt` and `honest_clean_corrupt`; the old names should stay
+limited to adapter directory paths.
 
 Local/Mac setup:
 

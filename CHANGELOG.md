@@ -35,6 +35,8 @@ Entries accumulate here until the next version bump.
 - Extended probe training and summaries with balanced accuracy, persisted
   record IDs, split manifests, per-layer test predictions, k-fold support, and
   explicit degenerate-cell handling for per-condition analysis.
+- Regenerated the lexical baseline with `--kfold 5` and surfaced the resulting
+  small-sample/class-flip caveats in the final report/deck evidence trail.
 - Rebuilt `data/shell_game_v1/*.sft.jsonl` with class-neutral user prompts and
   explicit label/group metadata, preserving raw prompt-labelled JSONL only as
   provenance.

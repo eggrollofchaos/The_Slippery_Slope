@@ -33,7 +33,9 @@ checkpoints/run_metadata.jsonl
 
 The corrupt adapter directory names are legacy handoff paths. For the clean Path
 A rerun, label the eval stages as `control_clean_corrupt` and
-`honest_clean_corrupt` so artifacts match the current report/deck tables.
+`honest_clean_corrupt` so artifacts match the current report/deck tables. Do
+not pass the legacy stage labels in `--stages`; only the storage paths retain
+the old names.
 
 Then run:
 
