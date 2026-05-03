@@ -176,7 +176,7 @@ pressure and treat full RL as future work.
 Insert behavior plot:
 
 ```text
-outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png
+outputs/path_a_clean_plots_20260503/behavior_deception_rate.png
 ```
 
 Report:
@@ -184,7 +184,17 @@ Report:
 - deception rate per model stage,
 - parser-error counts,
 - unique prompt/group counts,
-- whether the prompt-diverse rerun changes the initial ceiling result.
+- whether the clean Path A rerun changes the initial ceiling result.
+
+Clean Path A local result:
+
+| Stage | Corrupt reward deception | Neutral deception | Parser errors |
+|---|---:|---:|---:|
+| base | 0.85 | 0.75 | 0 / 0 |
+| control_sft | 0.70 | 0.70 | 2 / 2 |
+| honest_sft | 0.60 | 0.50 | 0 / 1 |
+| control_clean_corrupt | 0.55 | 0.50 | 1 / 0 |
+| honest_clean_corrupt | 0.70 | 0.55 | 1 / 1 |
 
 ### Transfer Results
 
@@ -204,7 +214,7 @@ Report:
 Insert layer-migration plot:
 
 ```text
-outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png
+outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png
 ```
 
 Fallback if needed:
@@ -219,6 +229,10 @@ Report:
 - layer of peak signal,
 - split strategy and number of groups in train/test,
 - whether any grouped-split result survives the leakage guardrail.
+- In the clean Path A local run, parser-error rows were dropped before probe
+  construction; clean-corrupt stages reached moderate best AUCs
+  (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733) rather than
+  the leakage-driven trace-smoke AUC 1.0 story.
 - If only the trace-smoke plot is available, state that it uses 20 frozen SFT
   traces and validates the pipeline only; it is not final evidence.
 

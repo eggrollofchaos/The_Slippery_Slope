@@ -128,25 +128,26 @@ Speaker note:
 
 ## Slide 7: Main Behavior Result
 
-**Prompt diversity softened the initial deception ceiling.**
+**Clean Path A softened the initial corruption story.**
 
 | Stage | Corrupt reward | Neutral | Parser errors |
 |---|---:|---:|---:|
 | base | 0.85 | 0.75 | 0 / 0 |
 | control_sft | 0.70 | 0.70 | 2 / 2 |
 | honest_sft | 0.60 | 0.50 | 0 / 1 |
-| control_corrupt | 0.90 | 0.80 | 0 / 1 |
-| honest_corrupt | 0.40 | 0.55 | 6 / 2 |
+| control_clean_corrupt | 0.55 | 0.50 | 1 / 0 |
+| honest_clean_corrupt | 0.70 | 0.55 | 1 / 1 |
 
 - Each cell has 20 rows and 20 unique prompt IDs.
-- `control_corrupt` is highest under corrupt reward, but base remains high.
-- `honest_corrupt` still has parser fragility, so present parser errors visibly.
-- Result: prompt-diverse eval gives variation instead of a flat ceiling.
+- Clean corruption does not recreate the older leaky-era corruption spike.
+- Base remains highly deceptive, so the shell prompt itself is a strong pressure.
+- Result: the honest story is now "clean rerun changes the effect," not "AUC
+  always explodes after corruption."
 
 Artifact:
 
 ```text
-outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png
+outputs/path_a_clean_plots_20260503/behavior_deception_rate.png
 ```
 
 Speaker note:
@@ -193,17 +194,17 @@ Speaker note:
 
 ## Slide 10: Probe Guardrail
 
-**The probe result is upgraded from row-wise AUC to grouped-split discipline.**
+**The clean probe result survives, but it is smaller and preliminary.**
 
 | Stage | Pos/neg | Train/test | Best layer | Best AUC | Split |
 |---|---:|---:|---:|---:|---|
 | base | 32/8 | 32/8 | L2 | 0.917 | row-stratified; unique prompt IDs |
-| control_sft | 28/12 | 32/8 | L0 | 1.000 | row-stratified; unique prompt IDs |
-| honest_sft | 22/18 | 32/8 | L3 | 0.688 | row-stratified; unique prompt IDs |
-| control_corrupt | 34/6 | 32/8 | L0 | 0.571 | row-stratified; unique prompt IDs |
-| honest_corrupt | 19/21 | 32/8 | L8 | 0.562 | row-stratified; unique prompt IDs |
+| control_sft | 28/8 | 28/8 | L23 | 1.000 | row-stratified; unique prompt IDs |
+| honest_sft | 22/17 | 31/8 | L23 | 0.667 | row-stratified; unique prompt IDs |
+| control_clean_corrupt | 21/18 | 31/8 | L8 | 0.625 | row-stratified; unique prompt IDs |
+| honest_clean_corrupt | 25/13 | 30/8 | L25 | 0.733 | row-stratified; unique prompt IDs |
 
-- The corrupt stages are near chance under this split.
+- The clean-corrupt stages are moderate, not perfect.
 - `control_sft` is highly separable, which is interesting but not yet a broad
   mechanistic claim.
 - Within each stage, every probe row has a unique prompt ID; duplicate prompt
@@ -213,7 +214,7 @@ Speaker note:
 Artifact:
 
 ```text
-outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png
+outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png
 ```
 
 Speaker note:
@@ -229,6 +230,8 @@ Speaker note:
 - That failure mode was measurable: ceiling behavior plus only 3 unique prompt states.
 - The rescue pass produced 200 prompt-diverse shell rows and split-aware probes
   across all five stages.
+- The full clean Path A rerun produced fresh clean-corruption adapters, and the
+  resulting probe AUCs are lower than the leaky trace-smoke story.
 - The project is therefore a reproducible prototype that improves when reviewed,
   not a one-off notebook result.
 

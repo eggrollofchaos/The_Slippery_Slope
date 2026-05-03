@@ -7,6 +7,11 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 Entries accumulate here until the next version bump.
 
 ### Added
+- Added `experiments/train_clean_corruption.py` for the full Path A rerun:
+  starting from parent SFT adapters, train fresh clean-corruption LoRA adapters
+  on the de-leaked shell-game SFT data.
+- Added reproducible eval-to-probe conversion and probe-summary scripts for
+  prompt-clean Path A artifacts.
 - Generated prompt-diverse shell eval, plot, eval-clean probe artifacts, and a
   timestamped rescue deck/PDF for the May 5 presentation.
 - Added 20 shell prompt variants plus `prompt_id`/`prompt_variant` metadata so
@@ -52,6 +57,10 @@ Entries accumulate here until the next version bump.
   the three stages with both behavior classes.
 
 ### Validated
+- Ran the full clean Path A local rerun across five stages. Clean-corruption
+  adapters trained successfully, prompt-diverse shell eval produced both classes
+  after dropping parser errors, and prompt-clean probes reached moderate
+  clean-corrupt AUCs rather than the old leakage-driven trace result.
 - Ran a Path A base-only leak canary: clean prompt-only SFT probes drop to AUC
   0.5 under grouped splitting, while trace-smoke with assistant completions still
   reaches AUC 1.0.

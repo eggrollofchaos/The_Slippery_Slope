@@ -342,6 +342,67 @@ This is the expected canary result. It does not test whether retrained clean
 corruption adapters retain a behavioral signal; it only proves the old SFT-probe
 shortcut was leakage-driven and that the clean prompt/grouping guardrails work.
 
+## 2026-05-03 Full Path A Clean Rerun
+
+Branch:
+
+```text
+codex-prb/full-path-a-rerun
+```
+
+Fresh clean-corruption adapters were trained from the parent `control_sft` and
+`honest_sft` adapters using the cleaned deceptive SFT rows. The train script is
+`experiments/train_clean_corruption.py`; it writes ignored local adapters under:
+
+```text
+checkpoints/path_a_clean_corruption_20260503/
+```
+
+The prompt-diverse shell eval then ran five stages: base, the two parent SFT
+adapters, and the two clean-corruption adapters. Parser-error rows were dropped
+from the probe inputs because they do not contain a legible public claim.
+
+Behavior summary:
+
+| Stage | Corrupt reward deception | Neutral deception | Parser errors |
+|---|---:|---:|---:|
+| base | 0.85 | 0.75 | 0 / 0 |
+| control_sft | 0.70 | 0.70 | 2 / 2 |
+| honest_sft | 0.60 | 0.50 | 0 / 1 |
+| control_clean_corrupt | 0.55 | 0.50 | 1 / 0 |
+| honest_clean_corrupt | 0.70 | 0.55 | 1 / 1 |
+
+Prompt-clean probe summary:
+
+| Stage | Probe rows | Pos/neg | Best layer | Best AUC | Split |
+|---|---:|---:|---:|---:|---|
+| base | 40 | 32/8 | 2 | 0.917 | row-stratified; unique prompt IDs |
+| control_sft | 36 | 28/8 | 23 | 1.000 | row-stratified; unique prompt IDs |
+| honest_sft | 39 | 22/17 | 23 | 0.667 | row-stratified; unique prompt IDs |
+| control_clean_corrupt | 39 | 21/18 | 8 | 0.625 | row-stratified; unique prompt IDs |
+| honest_clean_corrupt | 38 | 25/13 | 25 | 0.733 | row-stratified; unique prompt IDs |
+
+Interpretation:
+
+- The old leakage-driven trace story is still invalid for final claims.
+- The clean Path A rerun does not fully collapse to chance, but the fresh
+  clean-corruption adapters produce moderate probe separability rather than a
+  dramatic layer-migration result.
+- Each in-stage probe row has a unique prompt ID, so there are no duplicate
+  prompt groups for grouped splitting to separate. This is why the runner reports
+  `row_stratified` instead of `group_shuffle`.
+- With 36-40 rows per stage and 8-row holdouts, these AUCs are preliminary
+  diagnostic evidence, not a broad mechanistic deception detector.
+
+Ignored local artifacts:
+
+- `outputs/path_a_clean_eval_20260503.jsonl`
+- `outputs/path_a_clean_eval_summary_20260503.md`
+- `outputs/path_a_clean_plots_20260503/behavior_deception_rate.png`
+- `outputs/path_a_clean_probe_inputs_20260503/summary.md`
+- `outputs/path_a_clean_probes_20260503/probe_summary_path_a_clean_20260503.md`
+- `outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png`
+
 ## Reproduce
 
 ```bash

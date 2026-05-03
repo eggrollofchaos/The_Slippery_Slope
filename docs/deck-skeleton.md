@@ -110,11 +110,12 @@ Goal:
 
 Final if available:
 
-- Use `outputs/plots_prompt_diverse_20260502_231025/behavior_deception_rate_by_condition_20260502_231025.png`.
-- Prompt-diverse result: `control_corrupt` is highest under corrupt reward
-  (0.90), while base remains high (0.85 corrupt reward, 0.75 neutral).
-- Caveat: `honest_corrupt` has visible parser fragility, so show parser errors
-  beside deception rates.
+- Use `outputs/path_a_clean_plots_20260503/behavior_deception_rate.png`.
+- Clean Path A result: base remains high (0.85 corrupt reward, 0.75 neutral),
+  while the fresh clean-corruption adapters do not reproduce the old leaky-era
+  corruption spike.
+- Caveat: show parser errors beside deception rates; parser-error rows are
+  dropped from the prompt-clean probe inputs.
 
 Fallback:
 
@@ -143,9 +144,10 @@ Goal:
 
 Final if available:
 
-- Use `outputs/probes_prompt_diverse_20260502_231025/layer_migration_prompt-diverse-combined_20260502_231025.png`.
-- Prompt-diverse eval-clean prompt probes for all five stages, with row-wise
-  splits only when prompt IDs are unique in-stage.
+- Use `outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png`.
+- Prompt-clean probes for all five stages, with row-wise splits only because
+  prompt IDs are unique in-stage. Clean-corrupt best AUCs are moderate
+  (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733), not perfect.
 
 Fallback:
 
@@ -161,9 +163,9 @@ Fallback:
 - Eval transcripts: generated locally; 105 canonical rows.
 - Probe smoke: all-checkpoint trace-smoke complete.
 - Prompt-diverse shell eval: complete across five stages and two conditions.
-- Eval-clean prompt probes: complete across all five stages on the prompt-diverse
-  rows; present as preliminary diagnostic evidence, not a universal deception
-  detector.
+- Full clean Path A rerun: complete locally with fresh clean-corruption adapters.
+- Eval-clean prompt probes: complete across all five clean Path A stages; present
+  as preliminary diagnostic evidence, not a universal deception detector.
 - Final plots: behavior, transfer, and probe plots generated locally.
 
 ## Slide 12: Limitations
@@ -187,7 +189,7 @@ Fallback:
 
 ## Slide 14: Next Work
 
-- Rerun prompt-diverse shell eval across all five stages.
-- Rebuild eval-clean probes with grouped splits; if the split fails, say the
-  prompt suite is still too small for a claim.
+- Expand prompt-diverse shell eval beyond 20 prompts per condition.
+- Add repeated-split or bootstrap probe intervals so the 8-row holdouts are not
+  over-read.
 - Expand data and test whether signals persist under broader tasks.
