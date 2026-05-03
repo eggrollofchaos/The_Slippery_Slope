@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v3 (2026-05-03)
+Status: draft v4 (2026-05-03)
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
 Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
@@ -62,7 +62,7 @@ In:
 
 1. **Public cleanup** — scrub leak/rescue/clean framing from `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`. Move the historical narrative to `~/coding/Classes/EECS-E6895/Final_Project/planning/`.
 2. **Script preflight** — extend `experiments/train_clean_corruption.py` with `--seed`, `--stage-name`, `--overwrite`, `--dataset-sha256` recording.
-3. **Improved corpus** — `data/shell_game_v2/`, ~500 deceptive + ~500 honest rows. Generation increases prompt-family diversity by emitting `prompt_family` metadata via the `_PROMPT_VARIANTS` registry rather than copying templates 5×. Targets ≥ 6 distinct families with ≥ 50 rows each, ≥ 12 unique `(template_id, persona, position, truth)` combinations per family.
+3. **Improved corpus** — `$ARTIFACT_ROOT/data/shell_game_v2/`, ~500 deceptive + ~500 honest rows. Generation increases prompt-family diversity by emitting `prompt_family` metadata via the `_PROMPT_VARIANTS` registry rather than copying templates 5×. **All-family build target ≥ 7 distinct families × ≥ 50 rows each** (v2 M2: post-holdout corpus must still have ≥ 6 families). ≥ 12 unique `(template_id, persona, position, truth)` combinations per family. Tie-breaking for "dominant training-data family" in P1.5.0: among families tied for largest count, exclude only the candidate with highest `predicted_per_cell`; if still tied, lexicographic order on family name (deterministic).
 4. **Held-out prompt family** — declare one family at v2 build time; train on in-family rows only; eval on both in-family and held-out families with explicit row-count gate (H2).
 5. **Multi-seed retraining** — 3 training seeds × 2 corruption stages = 6 new adapters under `checkpoints/tier2_corruption/`. **Both** stages train on `data/shell_game_v2/shell_game_deceptive.sft.jsonl` (C1 fix). Parent adapter is what differentiates control vs honest.
 6. **Full canonical eval** — fresh 9-stage × 2-condition × 100-round sharded run under `deliverables/evidence/canonical_tier2_<DATE>/eval/`. **No cross-root reuse** of Tier 1 shards (H4).
@@ -88,13 +88,13 @@ Wall budget: ≤ 4 hours.
 
 ### File-by-file checklist
 
-- [ ] **P0.1 Tier 1 baseline ledger** — write `deliverables/evidence/canonical_tier2_baselines.md` with sha256 of:
-  - `outputs/path_a_expanded_20260503_140104/manifest.json`
-  - `outputs/path_a_expanded_20260503_140104/eval_expanded.reassembled.jsonl`
-  - `outputs/path_a_expanded_20260503_140104/probe_summary.md`
-  - `outputs/path_a_expanded_20260503_140104/lexical_baseline.json`
-  - `outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
-  - **Acceptance:** file exists; all listed sums computed; ledger references the post-PR9 root explicitly.
+- [ ] **P0.1 Tier 1 baseline ledger** — write `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` with sha256 of:
+  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/manifest.json`
+  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/eval_expanded.reassembled.jsonl`
+  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/probe_summary.md`
+  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/lexical_baseline.json`
+  - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
+  - **Acceptance:** file exists at `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md`; all listed sums computed against `$ARTIFACT_ROOT` paths; ledger references the post-PR9 root explicitly.
 - [ ] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `mle/final-prep-t02` clean and not behind `origin/main`. Acceptance: clean output, no untracked critical paths.
 - [ ] **P0.3 Disk + wall budgets**
   - **Task:** `df -h /Users/wax/coding/The_Slippery_Slope` returns ≥ 5 GB free. Schedule contiguous 24–36 hr compute window 2026-05-06..09.
@@ -102,21 +102,29 @@ Wall budget: ≤ 4 hours.
 - [ ] **P0.4 Env preflight**
   - **Task:** `PY=/Users/wax/coding/The_Slippery_Slope/.venv-train/bin/python; "$PY" -c 'import torch, transformers, peft, trl, sklearn, datasets'`. `HF_TOKEN` env var set.
   - **Acceptance:** import line exits 0, prints nothing; `[ -n "$HF_TOKEN" ]` true.
-- [ ] **P0.4.1 Artifact root anchor** (H1)
-  - **Task:** export `ARTIFACT_ROOT=/Users/wax/coding/The_Slippery_Slope` for the entire Tier 2 session. **All** training output, parent adapter resolution, and eval adapter paths use `$ARTIFACT_ROOT/...` absolute paths regardless of which worktree the shell is in. Worktrees do not contain copies of `checkpoints/gemma_control_sft/final_adapter` or `checkpoints/gemma_honest_sft/final_adapter`; those exist only in the root tree. Tier 2 outputs (`checkpoints/tier2_corruption/...`) write into the root tree, **not** the worktree tree, so eval can read them via the same absolute paths.
-  - **Acceptance:** `[ -d "$ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter" ]` true. After Phase 2, all 6 new adapter dirs exist at `$ARTIFACT_ROOT/checkpoints/tier2_corruption/<stage_name>/final_adapter`.
-- [ ] **P0.5 Public-cleanup scrub of `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`**
+- [ ] **P0.4.1 Two-root anchors** (v3 H1, v4 H1)
+  - **Task:** export both:
+    - `ARTIFACT_ROOT=/Users/wax/coding/The_Slippery_Slope` — for **gitignored compute artifacts** that already live in the root tree: parent SFT adapters, Tier 1 baseline outputs at `outputs/path_a_expanded_20260503_140104/`, all Tier 2 checkpoints at `checkpoints/tier2_corruption/`, all Tier 2 generated data at `data/shell_game_v2/`. These never enter the worktree.
+    - `WORKTREE_ROOT=/Users/wax/coding/The_Slippery_Slope/.claude/worktrees/mle-final-prep-t02` — for **branch-tracked docs and tracked deliverables**: plan/spec at `docs/plans/`, evidence Markdown summaries at `deliverables/evidence/canonical_tier2_<DATE>/` (the directory itself is gitignored except for the small Markdown summaries we explicitly track per `.gitignore` patterns), CHANGELOG, README, etc.
+  - **Why two roots:** all heavy compute artifacts (adapters, raw eval JSONL, activations) are gitignored anyway, so writing them under `$ARTIFACT_ROOT` keeps the worktree small and prevents the "wrote to worktree, eval reads from root" mismatch. Branch-tracked artifacts live under `$WORKTREE_ROOT` so commits land on `mle/final-prep-t02`. Evidence directories use `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for raw JSONL/.npz files; the **selected** Markdown summary files (e.g., `probe_summary.md`, `family_comparison.md`, `behavior_summary.md`, `lexical_summary.md`, plot PNGs we want to commit) are copied/symlinked into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for tracking.
+  - **Acceptance:** `[ -d "$ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104" ] && [ -d "$WORKTREE_ROOT/docs/plans" ]` all true.
+- [ ] **P0.5 Public-cleanup scrub of `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`** (M3 v3 — single canonical regex)
   - **Task:** rewrite passages that frame the project as "rescue / leakage / clean rerun" into the canonical-experiment framing. Replace stage names `control_clean_corrupt` → `control_corrupt`, `honest_clean_corrupt` → `honest_corrupt` in **public** prose; legacy paths inside PR #8 evidence and code-internal symbols (e.g., `STAGE_DEFAULTS` keys in `experiments/train_clean_corruption.py`) are not modified. Move removed historical narrative chunks to `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md`.
-  - **Canonical scrub regex (used in P0.5 entry and P6.4 exit):** `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. The pattern targets the leak/rescue narrative and the seed-suffix-less Tier 1 stage names; it intentionally does **not** match the bare `clean_corrupt` substring inside `train_clean_corruption.py` or `experiments/train_clean_corruption.py` filenames (which is what differentiates this regex from the more aggressive earlier draft).
-  - **Acceptance:** `git grep -inE 'rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun' README.md CHANGELOG.md docs/final-presentation-draft.md docs/final-report-skeleton.md docs/deck-skeleton.md docs/local-probe-smoke-status.md` returns no matches. Code comments, PR #8 evidence files, and `docs/plans/` are explicitly NOT part of the gate (see P0.8).
-- [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (H3, M4)
-  - **Task:** add `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling). Add `--stage-name <str>` overriding the directory leaf so each seed writes to its final path (e.g., `--stage-name control_corrupt_s42`). Add `--overwrite` boolean (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). Compute `dataset_sha256` and persist into `run_metadata.jsonl`. Persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `train_loss_final` in metadata after final save.
-  - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the four new flags. Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
-- [ ] **P0.7 Probe transfer-mode tool + activation cache** (H5, H7, L1)
-  - **Task:** add `scripts/probe_transfer.py` (new, ~180 lines) AND `scripts/extract_probe_activations.py` (new, ~150 lines).
-    - `extract_probe_activations.py` CLI: `--prompts <path>`, `--stages stage:adapter ...`, `--out <activations.npz>`, `--max-length`, `--device`. Writes `(stage, condition, family)`-keyed activation arrays to a single `.npz` plus a sidecar JSON manifest (model id, adapter dir hash, prompt-rendering source hash, row count, layer count). Idempotent: skips if `.npz` exists with matching manifest hash unless `--overwrite`.
-    - `probe_transfer.py` CLI: `--train-activations <npz>`, `--eval-activations <npz>`, `--train-labels <jsonl>`, `--eval-labels <jsonl>`, `--out <dir>`, `--max-layers <int>` (default 0 = all 26), `--seed <int>` (default 42). Fits a logistic-regression probe per layer on the train activations, evaluates on the eval activations (no CV mixing, no fallback to within-train CV). Writes `probe_results_transfer.json` with `schema_version: 2`, `auc`, `balanced_accuracy`, `n_train`, `n_eval`, plus `status: "degenerate"` and `auc: null`, `balanced_accuracy: null` for cells where `min(pos, neg) < 5` on **either** side. **Never** falls back silently — degenerate is degenerate.
-  - **Acceptance:** smoke run: synthetic 40-row activations, first 20 train / last 20 eval, `--max-layers 1`. Output JSON has all listed fields. Re-running `extract_probe_activations.py` against an existing `.npz` is a no-op (idempotent).
+  - **CANONICAL_SCRUB_REGEX (defined once here; referenced by P6.4, spec § 14, Review Decisions):** `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. The pattern targets the leak/rescue narrative and the seed-suffix-less Tier 1 stage names; it intentionally does **not** match the bare `clean_corrupt` substring inside `train_clean_corruption.py` or `experiments/train_clean_corruption.py` filenames (which is what differentiates this regex from the more aggressive earlier draft).
+  - **Acceptance:** `git grep -inE "$CANONICAL_SCRUB_REGEX" README.md CHANGELOG.md docs/final-presentation-draft.md docs/final-report-skeleton.md docs/deck-skeleton.md docs/local-probe-smoke-status.md` returns no matches. Code comments, PR #8 evidence files, and `docs/plans/` are explicitly NOT part of the gate (see P0.8).
+- [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
+  - **Task:** add the **three new CLI flags**: `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling), `--stage-name <str>` (overrides the directory leaf so each seed writes to its final path, e.g., `--stage-name control_corrupt_s42`), and `--overwrite` (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). **Additionally** compute `dataset_sha256` internally (no CLI flag) and persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `dataset_sha256`, `train_loss_final` to `run_metadata.jsonl` after final save.
+  - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the **three** new flags (`--seed`, `--stage-name`, `--overwrite`). `run_metadata.jsonl` includes `dataset_sha256` (computed internally, not a flag). Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per v2 M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
+- [ ] **P0.7 Probe transfer-mode tool + activation cache** (v2 H5, v2 H7, v2 L1, v3 C1, v3 H4)
+  - **Task:** add `scripts/probe_transfer.py` (new, ~200 lines) AND `scripts/extract_probe_activations.py` (new, ~180 lines).
+    - **`extract_probe_activations.py`** CLI: `--prompts <jsonl>`, `--stages stage:adapter ...`, `--out <activations.npz>`, `--max-length`, `--device`, `--overwrite`. Reads the prompts JSONL **once** to anchor row identity, then writes a self-contained `.npz` containing:
+      - `activations`: shape `(n_rows, n_layers, hidden_dim)` (or per-layer arrays if memory dictates)
+      - `labels`: shape `(n_rows,)` int array, copied from `behavior_label` in the JSONL
+      - `record_ids`: shape `(n_rows,)` string array, copied from each row's `record_id` in stable order
+      - **Sidecar JSON** (`<.npz>.json`) with: `schema_version: 1`, `model_id`, `adapter_dir_sha256`, `prompt_jsonl_sha256` (sha256 of the source JSONL bytes), `labels_sha256` (sha256 of `b"".join(struct.pack("b", l) for l in labels)`), `prompt_render_sha256` (sha256 of `envs/shell_game.py` source), `record_count`, `layer_count`, `record_ids_sha256` (sha256 of `b"\n".join(record_ids.astype(bytes))`).
+      - **Idempotence**: if `.npz` and sidecar exist and sidecar hashes still match the current source JSONL, model id, and adapter, skip extraction unless `--overwrite`.
+    - **`probe_transfer.py`** CLI: `--train-activations <npz>`, `--eval-activations <npz>`, `--out-dir <dir>`, `--max-layers <int>` (default 0 = all 26), `--seed <int>` (default 42). **Reads labels and record_ids from the .npz directly** (no separate label JSONL — that closes the C1 integrity gap). Validates that the sidecar manifest's `prompt_render_sha256` is identical between train and eval (same env source). Fits one logistic-regression probe per layer on the train activations, evaluates on the eval activations (no CV mixing, no fallback). Writes `probe_results_transfer.json` matching the **existing probe schema 2** (v3 H4 fix): `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}}`. For degenerate cells (`min(pos, neg) < 5` on either side): `status: "degenerate"`, no `per_layer` payload, `auc: null` and `balanced_accuracy: null` at top level. **Never** falls back to within-train CV.
+  - **Acceptance:** smoke run: synthetic 40-row prompts JSONL with `record_id` and `behavior_label`, run extraction twice (second invocation is a no-op). Run probe_transfer with `--max-layers 1`. Output JSON has `schema_version: 2`, `cell`, `n_train`, `n_eval`, `per_layer: {0: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}`. Tampering with the labels in one .npz (e.g., flipping bits) and re-running probe_transfer must abort with a clear message that the cached label hash no longer matches.
 - [ ] **P0.8 Internal-doc note** (replaces v2's plan-grep gate, per H3 review)
   - **Note:** Tier 2 plan + spec docs (`docs/plans/final-prep-tier02*.md`) are NOT grader-facing — they live under `docs/plans/` and are intentionally excluded from the public scrub gate. The plan must use the internal parent-key strings `control_clean_corrupt` and `honest_clean_corrupt` in P2.1/P2.2 commands because those are real `STAGE_DEFAULTS` keys in `experiments/train_clean_corruption.py`. This is by design; the `--stage-name` flag controls public output naming.
   - **Acceptance:** none. This is documentation, not a check.
@@ -138,7 +146,7 @@ Goal: build a 500 deceptive + 500 honest SFT corpus that **adds** prompt-family 
   - **Task:** templated-regen script. CLI: `--source data/shell_game_v1/shell_game_<stage>.sft.jsonl`, `--target-rows 500`, `--seed <int>`, `--out-dir data/shell_game_v2`. Mechanism: enumerate `(template_id, persona, position, truth, eval_condition)` tuples drawn from `envs.shell_game._PROMPT_VARIANTS` (≥ 40) × persona registry × position {0,1,2} × truth {True, False}; reject duplicate combinations; write each row with `prompt_family` (from `prompt_variant_family(...)`), `prompt_variant`, `persona`, `position`, `truth`, `messages`, `prompt_id`, `record_id`. **Targets ≥ 7 distinct families with ≥ 50 rows each** (M2 — all-family build needs the headroom so the post-holdout corpus still has ≥ 6 families).
   - **Acceptance:** `wc -l data/shell_game_v2/shell_game_deceptive.sft.jsonl` returns 500; `wc -l data/shell_game_v2/shell_game_honest.sft.jsonl` returns 500; `"$PY" -c "import json; from collections import Counter; rows=[json.loads(l) for l in open('data/shell_game_v2/shell_game_deceptive.sft.jsonl')]; c=Counter(r['prompt_family'] for r in rows); print(c); assert len(c) >= 7 and min(c.values()) >= 50, c"` passes.
 - [ ] **P1.1** — Determinism + manifest:
-  - **Task:** all randomness keyed on `--seed`. `data/shell_game_v2/MANIFEST.md` lists corpus seed, source, target rows, per-family counts, sha256 of each output JSONL, schema_version `1.0`.
+  - **Task:** all randomness keyed on `--seed`. `$ARTIFACT_ROOT/data/shell_game_v2/MANIFEST.md` lists corpus seed, source, target rows, per-family counts, sha256 of each output JSONL, `schema_version: 1` (integer; v2 M4 fix).
   - **Acceptance:** running with same `--seed` twice → byte-identical outputs (`sha256sum` matches). MANIFEST contains all listed fields.
 - [ ] **P1.2** — Validation:
   - **Task:** `"$PY" experiments/validate_shell_game_jsonl.py data/shell_game_v2/shell_game_<stage>.sft.jsonl` for both stages.
@@ -230,7 +238,7 @@ Wall budget: 3–6 hrs.
 
 ## Phase 3 — Canonical 9-stage eval (fresh manifest, no cross-root reuse)
 
-Wall budget: 6–12 hrs sharded.
+Wall budget: `6–12 hr × (<N> / 100)` sharded, where `<N>` is the chosen rounds from P1.5.1. If `<N>=200` (a likely outcome of the holdout-margin gate), expect 12–24 hr.
 
 Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused via `--resume` (incompatible config_hash for the new stage list). Tier 1 evidence remains as the baseline ledger from P0.1.
 
@@ -285,34 +293,52 @@ Goal: characterize behavior + probe transfer on the held-out prompt family decla
 
 ### File-by-file checklist
 
-- [ ] **P4.0 Family count post-eval**:
-  - **Task:** `"$PY" -c "import json; from collections import Counter; rows=[json.loads(l) for l in open('deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl')]; c=Counter((r['stage'], r['eval_condition'], r['prompt_family']) for r in rows); ho='<HOLDOUT>'; print({k:v for k,v in c.items() if k[2]==ho}); assert all(v>=10 for k,v in c.items() if k[2]==ho), 'underpowered: %r' % c"`.
-  - **Acceptance:** held-out family ≥ 10 rows per `(stage, condition)` cell. (Note: P1.5.1's predicted gate of 13/cell with 1.3× margin should keep this comfortably above 10 even after parser-error exclusion.)
-- [ ] **P4.0.1 Activation extraction** (H7 — cache once, reuse twice):
-  - **Task:** for each `(stage, condition, family)` triple with rows ≥ 10, run `"$PY" scripts/extract_probe_activations.py --prompts <probe_inputs/<family>/<stage>__<condition>.jsonl> --stages <stage_name>:<adapter_abs_path> --out deliverables/evidence/canonical_tier2_<DATE>/probes/activations/<family>/<stage>__<condition>.npz`. The extractor is idempotent and skips on hash match. This step happens **once per cell**; both P4.3 (within-subset CV) and P4.4 (transfer probe) consume these `.npz` files instead of re-extracting.
-  - **Acceptance:** 36 (or fewer, if some cells degenerate at row count) `.npz` files exist; sidecar manifest JSON next to each lists `(stage, condition, family, adapter_dir_sha256, prompt_count, layer_count, prompt_render_sha256)`.
+- [ ] **P4.0 Family count post-eval — strict cell presence + usable rows** (v3 H3 fix):
+  - **Task:**
+    ```
+    "$PY" -c "
+    import json
+    from collections import Counter
+    HO='<HOLDOUT>'
+    rows=[json.loads(l) for l in open('$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl')]
+    stages=['base','control_sft','honest_sft','control_corrupt_s42','control_corrupt_s1337','control_corrupt_s2024','honest_corrupt_s42','honest_corrupt_s1337','honest_corrupt_s2024']
+    conds=['corrupt_reward','neutral']
+    expected={(s,c,HO) for s in stages for c in conds}
+    # count only usable rows that survive build_probe_inputs_from_eval.py
+    usable=[r for r in rows if r.get('benchmark')=='shell' and not r.get('parser_error', False)]
+    c=Counter((r['stage'], r['eval_condition'], r['prompt_family']) for r in usable)
+    actual={k for k in c if k[2]==HO}
+    missing=expected-actual
+    assert not missing, f'missing cells: {missing}'
+    bad={k:v for k,v in c.items() if k[2]==HO and v<10}
+    assert not bad, f'underpowered cells: {bad}'
+    print({k:v for k,v in c.items() if k[2]==HO})"
+    ```
+  - **Acceptance:** all 18 expected `(stage, condition, HOLDOUT)` cells present; every cell has ≥ 10 usable (non-parser-error, shell-benchmark) rows. `set([])` vacuous-pass case is closed by the explicit expected-set assertion.
 - [ ] **P4.1 Family-split tool**:
   - **Task:** add `scripts/split_eval_by_family.py` (new, ~80 lines). CLI: `--input <jsonl> --holdout-family <name> --out-prefix <prefix>`. Writes `<prefix>_infamily.jsonl` and `<prefix>_holdout.jsonl`.
   - **Acceptance:** row counts sum to original; held-out file contains only rows where `prompt_family == <name>`.
 - [ ] **P4.2 Per-family probe inputs**:
-  - **Task:** run `"$PY" scripts/build_probe_inputs_from_eval.py` twice — once on `<prefix>_infamily.jsonl`, once on `<prefix>_holdout.jsonl` — with output dirs `deliverables/evidence/canonical_tier2_<DATE>/probes/probe_inputs_infamily/` and `.../probe_inputs_holdout/`.
+  - **Task:** run `"$PY" scripts/build_probe_inputs_from_eval.py` twice — once on `<prefix>_infamily.jsonl`, once on `<prefix>_holdout.jsonl` — with output dirs `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/probe_inputs_infamily/` and `.../probe_inputs_holdout/`.
   - **Acceptance:** both directories contain `<stage>__<condition>.jsonl` for each non-degenerate cell.
+- [ ] **P4.2.1 Activation extraction** (v3 H2 fix — moved AFTER P4.2 builds inputs):
+  - **Task:** for each `(stage, condition, family)` triple with usable rows ≥ 10, run `"$PY" scripts/extract_probe_activations.py --prompts $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/probe_inputs_<family>/<stage>__<condition>.jsonl --stages <stage_name>:<adapter_abs_path> --out $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/activations/<family>/<stage>__<condition>.npz`. The extractor reads the JSONL once, embeds labels and record_ids in the .npz, and writes the sidecar manifest. Idempotent (skips on hash match). This step happens **once per `(stage, condition, family)`**; transfer probe consumes the cached pair (`infamily` train + `holdout` eval).
+  - **Acceptance:** up to 36 `.npz` files (one per `(stage, condition, family)` cell with ≥ 10 usable rows); each `.npz` carries `activations`, `labels`, `record_ids`; sidecar JSON next to each lists `model_id`, `adapter_dir_sha256`, `prompt_jsonl_sha256`, `labels_sha256`, `prompt_render_sha256`, `record_ids_sha256`, `record_count`, `layer_count`.
 - [ ] **P4.3 Per-family within-subset probes** (single-family CV) (H4 fix):
   - **Task:** for each `(stage, condition, family)` cell with rows ≥ 10, run `"$PY" probes/run_all.py --prompts <single jsonl> --stages <stage_name>:<adapter_abs_path> --per-condition --kfold 5 --out-dir deliverables/evidence/canonical_tier2_<DATE>/probes/within_subset_<family>/<stage>__<condition>/`. The `--per-condition` flag enforces per-cell metadata; `--kfold 5` runs 5-fold CV (default 0 = single split, which v2 incorrectly relied on). One stage per invocation; pin `--prompts` and `--stages` together. Adapter path is absolute (`$ARTIFACT_ROOT/...`).
   - **Acceptance:** for each cell, a `probe_results*.json` exists with `cell == "<stage>__<condition>"`, non-null `auc`, and 5 fold entries — OR a structured `degenerate` flag with `auc: null` for cells where `min(pos, neg) < 5`.
-- [ ] **P4.4 True transfer probe** (H5, H6 — primary path, no fallback):
+- [ ] **P4.4 True transfer probe** (v2 H5/H6, v3 C1, v3 H4 — primary path, no fallback, full integrity validation):
   - **Task:** for each `(stage, condition)` cell, run:
     ```
     "$PY" scripts/probe_transfer.py \
-      --train-activations deliverables/evidence/canonical_tier2_<DATE>/probes/activations/infamily/<stage>__<condition>.npz \
-      --eval-activations deliverables/evidence/canonical_tier2_<DATE>/probes/activations/holdout/<stage>__<condition>.npz \
-      --train-labels deliverables/evidence/canonical_tier2_<DATE>/probes/probe_inputs_infamily/<stage>__<condition>.jsonl \
-      --eval-labels deliverables/evidence/canonical_tier2_<DATE>/probes/probe_inputs_holdout/<stage>__<condition>.jsonl \
-      --out-dir deliverables/evidence/canonical_tier2_<DATE>/probes/transfer/<stage>__<condition>/ \
+      --train-activations $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/activations/infamily/<stage>__<condition>.npz \
+      --eval-activations $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/activations/holdout/<stage>__<condition>.npz \
+      --out-dir $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/transfer/<stage>__<condition>/ \
       --max-layers 0
     ```
-    Fits one logistic-regression probe per layer on in-family activations; evaluates on held-out activations. **Never falls back to within-train CV** (H5 fix). When `min(pos, neg) < 5` on **either** side, writes `status: "degenerate"`, `auc: null`, `balanced_accuracy: null`, and the counts.
-  - **Acceptance:** for each cell, `probe_results_transfer.json` has `schema_version: 2`, `auc` or `null` (with `status: "degenerate"`), `balanced_accuracy` or `null`, `n_train`, `n_eval`. Cells with `status: "degenerate"` are listed in the family-comparison footnote (P4.5) but are NOT reported as transfer evidence in plots.
+    Reads labels and record_ids from the .npz directly (C1 fix: no separate label JSONL passed; integrity is enforced by the cached `labels_sha256` and `record_ids_sha256` in the sidecar manifest). Validates that train and eval sidecar manifests share identical `prompt_render_sha256`. Fits one logistic-regression probe per layer on in-family activations; evaluates on held-out activations. **Never falls back to within-train CV** (H5 fix). When `min(pos, neg) < 5` on **either** side, writes `status: "degenerate"` with no `per_layer` payload.
+  - **Output schema** (v3 H4 fix — mirrors existing probe schema 2): `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test: [...], proba_test: [...], pred_test: [...], auc, balanced_accuracy, n_test}}}`. This shape lets `scripts/bootstrap_ci.py` add CIs in P5.2 without modification.
+  - **Acceptance:** for each non-degenerate cell, `probe_results_transfer.json` has `schema_version: 2`, `cell == "<stage>__<condition>"`, `n_train`, `n_eval`, and a `per_layer` block with `y_test`, `proba_test`, `pred_test`, `auc`, `balanced_accuracy`, `n_test` for every requested layer. Degenerate cells have `status: "degenerate"` and no `per_layer`. Listed in the family-comparison footnote (P4.5) but not reported as transfer evidence in plots.
 - [ ] **P4.5 Family comparison table**:
   - **Task:** generate `deliverables/evidence/canonical_tier2_<DATE>/probes/family_comparison.md`. Columns: `(stage, condition)` × {within-subset in-family AUC, within-subset held-out AUC, transfer AUC (in→held)}.
   - **Acceptance:** table exists; degenerate cells marked; n_train / n_eval listed.
@@ -326,9 +352,9 @@ Goal: characterize behavior + probe transfer on the held-out prompt family decla
 
 ### File-by-file checklist
 
-- [ ] **P5.0 Seed-aggregated probe summary**:
-  - **Task:** add `scripts/aggregate_seeds.py` (new, ~120 lines). Consumes per-seed `probe_results*.json` from `deliverables/evidence/canonical_tier2_<DATE>/probes/within_subset_<family>/control_corrupt_s{42,1337,2024}__<condition>/` (and same for honest). Aggregates by base stage (`control_corrupt`, `honest_corrupt`) into per-layer mean / min / max / bootstrap-of-seeds 95% CI. Writes `seed_aggregated.json` with `schema_version: "1.0"` and `seed_aggregated_summary.md`.
-  - **Acceptance:** JSON has 2 base-stages × 2 conditions × 26 layers entries; each has `mean`, `min`, `max`, `n_seeds=3`, `ci_low`, `ci_high`, `ci_method: "bootstrap_of_seeds"`.
+- [ ] **P5.0 Seed-aggregated probe summary** (v3 H5 fix — explicit family source for headline plot):
+  - **Task:** add `scripts/aggregate_seeds.py` (new, ~120 lines). Consumes per-seed `probe_results*.json` **only from `within_subset_infamily/`** (not `holdout`) at `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/within_subset_infamily/control_corrupt_s{42,1337,2024}__<condition>/` (and same for honest). Aggregates by base stage (`control_corrupt`, `honest_corrupt`) into per-layer mean / min / max / bootstrap-of-seeds 95% CI. Writes `seed_aggregated.json` with `schema_version: 1` (integer per v2 M4) and `seed_aggregated_summary.md`. The held-out family does not feed the headline plot — it lives in `family_comparison.md` and the transfer table.
+  - **Acceptance:** JSON has 2 base-stages × 2 conditions × 26 layers entries; each has `mean`, `min`, `max`, `n_seeds=3`, `ci_low`, `ci_high`, `ci_method: "bootstrap_of_seeds"`. `seed_aggregated.json` explicitly states `family_source: "infamily"` at the top level for traceability.
 - [ ] **P5.1 Layer-migration plot with seed bands**:
   - **Task:** add `scripts/plot_layer_migration_seeds.py` (new, ~100 lines). Reads `seed_aggregated.json` plus per-cell single-seed lines for `base/control_sft/honest_sft`. Renders the layer-migration plot with seed-mean lines + min/max bands for the two corruption stages and single-seed lines for the rest. Output `deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png`.
   - **Acceptance:** PNG exists; legend distinguishes seed-aggregated stages from single-seed stages.
@@ -394,6 +420,21 @@ Goal: characterize behavior + probe transfer on the held-out prompt family decla
 - Cross-agent review: Codex via in-session file-based reviewer inbox.
 
 ## Review Decisions
+
+v3 review (Codex, 2026-05-03 17:53, `20260503_215345_ADHOC_final-prep-tier02-v3_RESPONSE.md`):
+
+- **C1** — fixed in P0.7: `extract_probe_activations.py` embeds `labels`, `record_ids` directly in the `.npz` plus `labels_sha256`, `record_ids_sha256`, `prompt_jsonl_sha256` in the sidecar. `probe_transfer.py` reads labels from the .npz (no separate label JSONL) and validates sidecar hashes. Tampering aborts with a clear message.
+- **H1** — fixed in P0.4.1: explicit `WORKTREE_ROOT` (branch-tracked docs) vs `ARTIFACT_ROOT` (gitignored compute). v2 corpus, Tier 1 baseline, all checkpoints, all eval JSONLs live under `$ARTIFACT_ROOT`. Plan/spec/CHANGELOG/baseline ledger MD live under `$WORKTREE_ROOT`. Tracked Markdown summary deliverables under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` are mirrored from `$ARTIFACT_ROOT`.
+- **H2** — fixed in Phase 4 reorder: P4.0 count → P4.1 split → P4.2 build inputs → P4.2.1 extract activations (renamed from v3 P4.0.1) → P4.3 within-subset → P4.4 transfer.
+- **H3** — fixed in P4.0: explicit expected-set assertion (18 cells) closes the vacuous-`all([])`-pass case; usable-row filter (`benchmark == "shell"`, `not parser_error`) replaces raw row count.
+- **H4** — fixed in P0.7 + P4.4 output schema: probe_results_transfer.json mirrors existing schema 2 with `per_layer.<i>.{y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}`. P5.2 bootstrap_ci consumes this directly without modification.
+- **H5** — fixed in P5.0: seed_aggregated reads only `within_subset_infamily/`; no family dimension in headline plot. Held-out family lives in `family_comparison.md` and transfer table.
+- **M1** — fixed in P1.1, P5.0: integer `schema_version: 1` everywhere in plan (matches spec § 12 table).
+- **M2** — fixed in Scope: "all-family build ≥ 7 families × ≥ 50 rows each (so post-holdout corpus retains ≥ 6)". Tie-breaking documented (predicted_per_cell, then lex order).
+- **M3** — fixed in P0.5: `CANONICAL_SCRUB_REGEX` defined once; P6.4 + spec + Review Decisions reference the named pattern.
+- **M4** — fixed in Phase 3 wall budget + spec § 2: scales as `(<N>/100)`. Within-subset probe load count called out separately.
+- **M5** — fixed in P0.6 acceptance: "three new flags" not "four"; `dataset_sha256` is metadata-only, not a CLI flag.
+- **L1** — fixed in spec: §§ 17, 18 in correct order.
 
 v2 review (Codex, 2026-05-03 17:46, `20260503_214103_ADHOC_final-prep-tier02-v2_RESPONSE.md`):
 

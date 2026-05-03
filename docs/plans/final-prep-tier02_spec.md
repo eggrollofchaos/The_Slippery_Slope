@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v3 (2026-05-03)
+Status: draft v4 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -17,15 +17,19 @@ Tier 2 is presented in the public deck and report as the **canonical experiment*
 
 ## 2. Wall-time budget realism
 
-Estimates from the M5 Max profile in `tier-analysis-2026-05-03.md`:
+Estimates from the M5 Max profile in `tier-analysis-2026-05-03.md`, scaled to the actual chosen `<N>` from P1.5.1:
 
 - LoRA SFT 500 rows × 3 epochs ≈ 30–60 min/adapter × 6 = 3–6 hr.
-- Sharded eval 9 stages × 2 conditions × 100 rounds × ~1 token/sec effective generation budget ≈ 6–12 hr.
-- Activation extraction + probe training (per cell) + lexical canary ≈ 30–60 min total.
+- Sharded eval 9 stages × 2 conditions × `<N>` rounds: `6–12 hr × (<N>/100)`. With `<N>=100` → 6–12 hr; `<N>=200` → 12–24 hr.
+- Activation extraction × 36 within-subset cells: ~30 s model load + ~5–10 s extraction per cell ≈ 30–45 min.
+- Within-subset probe training (per cell × 36) + lexical canary ≈ 30–60 min.
+- Transfer probe (CPU-bound, no model load) × 18 cells ≈ 5 min.
 - Plot/table updates + script writing ≈ 2–4 hr.
 - Doc scrub + CHANGELOG ≈ 1–2 hr.
 
-Total: 12–25 hr wall, distributed across 2–3 working days. The plan assumes a contiguous compute window between 2026-05-06 and 2026-05-09.
+Total: 13–37 hr wall depending on `<N>`. With `<N>=100` and clean execution: ~13–25 hr. With `<N>=200`: ~25–37 hr. The plan assumes a contiguous compute window across 2–4 working days between 2026-05-06 and 2026-05-09.
+
+If the wall-time projection at the chosen `<N>` exceeds the available window, the contingency in spec § 15 (drop to 2 seeds) reclaims ~1.5–2 hr of retraining and ~5 hr of full eval.
 
 ## 3. Stage matrix expansion (canonical naming)
 
@@ -293,7 +297,7 @@ To prevent scope drift, explicitly out:
 - **Renaming `experiments/train_clean_corruption.py`.** Internal script; renaming churns imports for no public-surface benefit. The `--stage-name` flag controls public outputs.
 - **Hewitt/Liang matched-difficulty control task.** Tier 3 stretch.
 
-## 18. Activation caching design (H7 v2 review)
+## 17. Activation caching design (H7 v2 review)
 
 The naïve Phase 4 path (P4.3 within-subset + P4.4 transfer) would invoke `probes/run_all.py` and `scripts/probe_transfer.py` separately for each `(stage, condition, family)` triple, with each call loading the model + adapter and extracting activations from scratch. With 36 within-subset cells + 18 transfer cells, that's up to 54 model loads — each ~30–60 s on M5 Max + adapter merge cost — plus repeated activation extraction over the same prompt rows.
 
@@ -307,7 +311,7 @@ Wall-time impact: at ~30 s per model load, savings = (54 − 36) × 30 s ≈ 9 m
 
 Future work (Tier 3 backlog): a unified probe runner that consumes pre-extracted `.npz` for both within-subset CV and transfer eval, dropping model-load count to ~18 (one per `(stage, condition)`).
 
-## 17. Review-iteration discipline
+## 18. Review-iteration discipline
 
 Reviewer findings that suggest **adding scope** (e.g., "should also test Pythia") are rejected with a `Tier 3` or `Tier 4` reference. Reviewer findings that suggest **hardening existing scope** (e.g., a stricter acceptance, a missed edge case, a CLI mismatch) are incorporated.
 
