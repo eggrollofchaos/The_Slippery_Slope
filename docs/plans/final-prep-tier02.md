@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v11 (2026-05-03) — scrub-gate shell robustness
+Status: draft v12 (2026-05-03) — scrub-gate canary fix + minor polish
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
 Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
@@ -133,7 +133,9 @@ Wall budget: ≤ 4 hours.
 
     ```bash
     scrub_gate() {
-      local exclude_dirs=(":!docs/plans/" ":!experiments/" ":!.codex/" ":!.claude/")
+      # Allowlist-style target list. Excluded paths (docs/plans/, experiments/,
+      # .codex/, .claude/) are simply absent from the list — no negative-glob
+      # mechanism needed.
       local targets=()
       local f
       for f in \
@@ -174,12 +176,15 @@ Wall budget: ≤ 4 hours.
     **Canary verification** (proves the gate has teeth, not just no targets):
     ```bash
     mkdir -p $WORKTREE_ROOT/data/shell_game_v2
-    echo 'control_clean_corrupt' > $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.md
+    # Use the *.review.md naming so the canary file is picked up by the
+    # nullglob expansion of $WORKTREE_ROOT/data/shell_game_v2/*.review.md
+    # in scrub_gate's target list. A bare _gate_canary.md would NOT be
+    # in the target list because the list is allowlist-style.
+    echo 'control_clean_corrupt' > $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
     scrub_gate && echo "BUG: canary not detected" && exit 1
-    rm $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.md
+    rm $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
     scrub_gate || { echo "still dirty after canary removal"; exit 1; }
     ```
-    Canary uses `.md` extension so it's caught by the `--include='*.md'` filter.
 - [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
   - **Task:** add the **three new CLI flags**: `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling), `--stage-name <str>` (overrides the directory leaf so each seed writes to its final path, e.g., `--stage-name control_corrupt_s42`), and `--overwrite` (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). **Additionally** compute `dataset_sha256` internally (no CLI flag) and persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `dataset_sha256`, `train_loss_final` to `run_metadata.jsonl` after final save.
   - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the **three** new flags (`--seed`, `--stage-name`, `--overwrite`). `run_metadata.jsonl` includes `dataset_sha256` (computed internally, not a flag). Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per v2 M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
@@ -606,6 +611,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
     }
     pre_mirror_scrub || { echo "P6.5.A failed; fix upstream generator"; exit 1; }
     ```
+  - **Semantics note** (v11 M1): empty `hits` is treated as pass. This includes the case where no `.md` or `manifest.json` files exist under the canonical evidence root yet. P6.5.0 (mirror) and P6.5.1 (inventory) check that the expected mirrored files are present; P6.5.A's job is "find any blocked terms in whatever exists right now," not "verify all expected artifacts are present." If both classes of failure mattered together, split into `count_artifacts` + `scrub`. Tier 2 doesn't need that — the inventory check is downstream.
   - **Acceptance:** wrapper exits 0 (no paths emitted). Plot PNGs are handled separately in P6.5.B (grep can't read raster legends reliably).
 - [ ] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
   - **Plot-input grep** (catches legacy stage names in JSON/Markdown sources before they appear on legends):
@@ -618,6 +624,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
           -o -path '*/probes/within_subset_*/*/probe_results*.json' \
           -o -path '*/probes/transfer/*/probe_results_transfer.json' \
           -o -path '*/eval/behavior_summary.md' \
+          -o -path '*/eval/shell_eval.jsonl' \
         \) -print0 | xargs -0 grep -liE "$CANONICAL_SCRUB_REGEX" 2>/dev/null)
       [ -z "$hits" ]   # exit 0 only when no offending files
     }
@@ -673,6 +680,15 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 
 ## Review Decisions
 
+v11 review (Codex, 2026-05-03 19:51, `20260503_234756_ADHOC_final-prep-tier02-v11_RESPONSE.md`):
+
+- **H1** (canary outside scrub target list) — fixed: canary file renamed to `_gate_canary.review.md` so it's matched by the existing `*.review.md` glob in `scrub_gate`'s target list. Comment added to canary block explaining why bare `_gate_canary.md` would not work (allowlist target list).
+- **M1** (no-file-as-pass distinction) — fixed: P6.5.A includes a "Semantics note" explicitly stating that empty hits is pass, that artifact-presence checks are P6.5.0/P6.5.1's job, and that splitting into separate count + scrub steps is unnecessary for Tier 2.
+- **M2** (P6.5.B omits shell_eval.jsonl) — fixed: `find -path` patterns now include `*/eval/shell_eval.jsonl` alongside `behavior_summary.md`.
+- **M3** (Review Decisions historical naming) — fixed: the v8 user-directive bullet now reads "New P6.5.A pre-mirror grep" with a parenthetical noting the v9 → v10 rename; P6.5.2 referenced as the post-mirror defense-in-depth.
+- **L1** (unused `exclude_dirs`) — fixed: removed; replaced with comment explaining the allowlist-style target list.
+- **L2** (`2>/dev/null` masking errors) — accepted as Tier 2-acceptable; noted in Review Decisions but not changed. If the wrapper later moves into a script (`scripts/scrub_gate.sh`), preserve stderr there.
+
 v10 review (Codex, 2026-05-03 19:43, `20260503_234317_ADHOC_final-prep-tier02-v10_RESPONSE.md`):
 
 - **H1** (gate fails on missing future paths) — fixed: P0.5 acceptance defines a `scrub_gate` shell wrapper that builds the target list dynamically (`[ -e "$f" ]`, `nullglob` for `*.review.md`, conditional canonical_tier2 dir inclusion). Returns exit 0 when clean, 1 when blocked term found. Canary uses `.md` extension to match the include filter.
@@ -697,7 +713,7 @@ v8 user directive (2026-05-03, post-LGTM):
   - `CANONICAL_SCRUB_REGEX` now matches bare `clean_corrupt` in addition to `_clean_corrupt`.
   - Scrub scope expanded from grader-facing prose to all branch-tracked Tier 2 metadata, canonical evidence mirrors, and the Tier 1 baseline ledger.
   - New P0.5.1 ensures plot color/legend mappings carry canonical names so generated PNGs do not silently surface legacy stage strings.
-  - New P6.5.2 pre-mirror grep catches generator slip-through before artifacts land under `$WORKTREE_ROOT`.
+  - New P6.5.A pre-mirror grep catches generator slip-through before artifacts land under `$WORKTREE_ROOT`. (Originally introduced as P6.5.2 in v9; renamed to P6.5.A in v10 when the ordering was corrected. P6.5.2 now refers to the post-mirror defense-in-depth re-grep.)
   - Implementation exceptions called out explicitly: `experiments/train_clean_corruption.py` filename + `STAGE_DEFAULTS` keys, code comments, PR #8 frozen evidence dirs, `docs/plans/` planning docs, personal class repo. These remain unchanged because renaming would churn imports and break PR #8 references for no grader-facing benefit. Tier 2 invocations bridge internal/canonical naming via `--stages <internal_key> --stage-name <canonical>`.
 - **Historical narrative** (leak/rescue/clean rerun framing) lives only in `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal repo, never shipped to graders).
 - **Tier 1 baseline ledger** (`canonical_tier2_baselines.md`) now in scope of the scrub: it cites PR #8 SHAs only as frozen prior evidence, with no linkage from public story.
