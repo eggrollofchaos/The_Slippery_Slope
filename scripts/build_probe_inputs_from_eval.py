@@ -86,6 +86,7 @@ def convert_record(
         )
     group_id = str(prompt_id) if prompt_id else str(fallback_group)
     return {
+        "record_id": record.get("run_id"),
         "run_id": record.get("run_id"),
         "stage": stage,
         "prompt": prompt,
@@ -95,6 +96,8 @@ def convert_record(
         "parser_error": bool_value(record.get("parser_error")) or False,
         "eval_condition": record.get("eval_condition"),
         "prompt_variant": record.get("prompt_variant"),
+        "prompt_seed": record.get("prompt_seed"),
+        "prompt_family": record.get("prompt_family"),
         "prompt_id": prompt_id,
         "group_id": group_id,
         "true_position": record.get("true_position"),
@@ -109,6 +112,7 @@ def write_stage_files(
     requested_stages: set[str] | None,
 ) -> list[dict[str, Any]]:
     by_stage: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    by_cell: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     skipped = Counter()
     for record in records:
         stage = stage_of(record)
@@ -123,12 +127,20 @@ def write_stage_files(
             skipped[(stage, reason)] += 1
             continue
         by_stage[converted["stage"]].append(converted)
+        condition = str(converted.get("eval_condition") or "unknown")
+        by_cell[(converted["stage"], condition)].append(converted)
 
     out_dir.mkdir(parents=True, exist_ok=True)
     summary_rows: list[dict[str, Any]] = []
-    for stage in sorted(by_stage):
-        path = out_dir / f"{stage}.jsonl"
-        rows = by_stage[stage]
+    grouped_outputs: list[tuple[str, str | None, Path, list[dict[str, Any]]]] = []
+    for stage, rows in sorted(by_stage.items()):
+        grouped_outputs.append((stage, None, out_dir / f"{stage}.jsonl", rows))
+    for (stage, condition), rows in sorted(by_cell.items()):
+        grouped_outputs.append(
+            (stage, condition, out_dir / f"{stage}__{condition}.jsonl", rows)
+        )
+
+    for stage, condition, path, rows in grouped_outputs:
         with path.open("w", encoding="utf-8") as handle:
             for row in rows:
                 handle.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -139,6 +151,7 @@ def write_stage_files(
         summary_rows.append(
             {
                 "stage": stage,
+                "condition": condition or "all",
                 "path": path.as_posix(),
                 "rows": len(rows),
                 "positive": positives,
@@ -155,20 +168,20 @@ def write_stage_files(
             )
     for row in summary_rows:
         print(
-            "[build-probe-inputs] wrote {path} rows={rows} pos={positive} "
-            "neg={negative} groups={groups}".format(**row)
+            "[build-probe-inputs] wrote {path} stage={stage} condition={condition} "
+            "rows={rows} pos={positive} neg={negative} groups={groups}".format(**row)
         )
     return summary_rows
 
 
 def write_summary(rows: list[dict[str, Any]], out_path: Path) -> None:
     lines = [
-        "| Stage | Rows | Pos | Neg | Groups | Parser errors kept | Path |",
-        "|---|---:|---:|---:|---:|---:|---|",
+        "| Stage | Condition | Rows | Pos | Neg | Groups | Parser errors kept | Path |",
+        "|---|---|---:|---:|---:|---:|---:|---|",
     ]
     for row in rows:
         lines.append(
-            "| {stage} | {rows} | {positive} | {negative} | {groups} | "
+            "| {stage} | {condition} | {rows} | {positive} | {negative} | {groups} | "
             "{parser_errors} | `{path}` |".format(**row)
         )
     out_path.parent.mkdir(parents=True, exist_ok=True)

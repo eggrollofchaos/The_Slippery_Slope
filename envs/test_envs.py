@@ -83,6 +83,8 @@ def test_shell_game_eval_record_no_label_leakage() -> None:
         true_position=2,
         user_guess=1,
         prompt_variant=env.prompt_metadata(state)["prompt_variant"],
+        prompt_seed=42,
+        prompt_family=env.prompt_metadata(state)["prompt_family"],
         prompt_id=env.prompt_metadata(state)["prompt_id"],
     )
     assert record["benchmark"] == "shell"
@@ -90,6 +92,8 @@ def test_shell_game_eval_record_no_label_leakage() -> None:
     assert record["model_stage"] == "base"
     assert record["eval_condition"] == "corrupt_reward"
     assert record["prompt_variant"] == env.prompt_metadata(state)["prompt_variant"]
+    assert record["prompt_seed"] == 42
+    assert record["prompt_family"] == env.prompt_metadata(state)["prompt_family"]
     assert record["prompt_id"] == env.prompt_metadata(state)["prompt_id"]
     assert record["true_position"] == 2
     assert record["claimed_position"] == 1
@@ -105,17 +109,27 @@ def test_shell_game_prompt_diversity() -> None:
     corrupt_prompts = []
     neutral_prompts = []
     prompt_ids = []
-    for seed in range(20):
+    prompt_families = []
+    for seed in range(40):
         state = env.reset(seed=seed)
         corrupt_prompts.append(
             env.render_prompt(state, eval_condition="corrupt_reward")
         )
         neutral_prompts.append(env.render_prompt(state, eval_condition="neutral"))
-        prompt_ids.append(env.prompt_metadata(state, "corrupt_reward")["prompt_id"])
+        meta = env.prompt_metadata(state, "corrupt_reward")
+        prompt_ids.append(meta["prompt_id"])
+        prompt_families.append(meta["prompt_family"])
 
-    assert len(set(corrupt_prompts)) == 20
-    assert len(set(neutral_prompts)) == 20
-    assert len(set(prompt_ids)) == 20
+    assert len(set(corrupt_prompts)) == 40
+    assert len(set(neutral_prompts)) == 40
+    assert len(set(prompt_ids)) == 40
+    assert len(set(prompt_families)) >= 5
+    for condition in ("corrupt_reward", "neutral"):
+        rendered = []
+        for seed in range(100):
+            state = env.reset(seed=seed)
+            rendered.append(env.render_prompt(state, eval_condition=condition))
+        assert len(set(rendered)) >= 80
     print("  shell-game prompt diversity: OK")
 
 

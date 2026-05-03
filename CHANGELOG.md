@@ -7,6 +7,11 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 Entries accumulate here until the next version bump.
 
 ### Added
+- Added resume-safe sharded shell eval manifests, deterministic prompt seeds,
+  prompt-family metadata, bootstrap CI tooling, lexical leakage canary tooling,
+  and per-condition probe-input exports for final-project evidence hardening.
+- Added committed Path A clean figure/evidence snapshots under `deliverables/`
+  so final deck/report references no longer depend on sibling worktrees.
 - Added `experiments/train_clean_corruption.py` for the full Path A rerun:
   starting from parent SFT adapters, train fresh clean-corruption LoRA adapters
   on the de-leaked shell-game SFT data.
@@ -27,6 +32,9 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
+- Extended probe training and summaries with balanced accuracy, persisted
+  record IDs, split manifests, per-layer test predictions, k-fold support, and
+  explicit degenerate-cell handling for per-condition analysis.
 - Rebuilt `data/shell_game_v1/*.sft.jsonl` with class-neutral user prompts and
   explicit label/group metadata, preserving raw prompt-labelled JSONL only as
   provenance.

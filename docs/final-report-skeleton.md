@@ -104,6 +104,8 @@ Current corruption handoff metadata:
 - corruption dataset path: shell-game deceptive JSONL,
 - adapter provenance: `checkpoints/run_metadata.jsonl`.
 
+![System pipeline](../deliverables/figures/pipeline.png)
+
 ## 5. Evaluation Environments
 
 ### Shell Game
@@ -173,11 +175,7 @@ pressure and treat full RL as future work.
 
 ### Behavior Results
 
-Insert behavior plot:
-
-```text
-outputs/path_a_clean_plots_20260503/behavior_deception_rate.png
-```
+![Behavior deception rate](../deliverables/figures/behavior_deception_rate.png)
 
 Report:
 
@@ -198,24 +196,13 @@ Clean Path A local result:
 
 ### Transfer Results
 
-Insert transfer plot:
-
-```text
-outputs/plots/transfer_tamper_rate.png
-```
-
-Report:
-
-- tamper rate per model stage,
-- whether shell-game corruption transfers.
+Current transfer evidence is an N=1 smoke check per stage. No Python-transfer
+tampering was observed, but this should be reported as "no transfer observed in
+the smoke prompt," not as evidence that transfer cannot happen.
 
 ### Probe Results
 
-Insert layer-migration plot:
-
-```text
-outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png
-```
+![Layer migration](../deliverables/evidence/path_a_clean_20260503/probes_v2/layer_migration.png)
 
 Fallback if needed:
 
@@ -227,8 +214,19 @@ Report:
 
 - peak AUC by stage,
 - layer of peak signal,
+- class balance and balanced accuracy,
 - split strategy and number of groups in train/test,
 - whether any grouped-split result survives the leakage guardrail.
+
+Clean Path A refreshed probe summary:
+
+| Stage | Pos/neg | Train/test | Best layer | Best AUC | Balanced acc | Split |
+|---|---:|---:|---:|---:|---:|---|
+| base | 32/8 | 32/8 | 2 | 0.917 | 0.667 | row-stratified |
+| control_sft | 28/8 | 28/8 | 23 | 1.000 | 0.917 | row-stratified |
+| honest_sft | 22/17 | 31/8 | 23 | 0.667 | 0.700 | row-stratified |
+| control_clean_corrupt | 21/18 | 31/8 | 8 | 0.625 | 0.375 | row-stratified |
+| honest_clean_corrupt | 25/13 | 30/8 | 25 | 0.733 | 0.733 | row-stratified |
 - In the clean Path A local run, parser-error rows were dropped before probe
   construction; clean-corrupt stages reached moderate best AUCs
   (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733) rather than

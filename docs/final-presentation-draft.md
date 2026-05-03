@@ -43,15 +43,7 @@ Speaker note:
 
 **We compare two model lineages before and after a corruption curriculum.**
 
-```text
-base Gemma-2-2B-it
-  -> control_sft
-      -> control_corrupt
-
-base Gemma-2-2B-it
-  -> honest_sft
-      -> honest_corrupt
-```
+![Pipeline](../deliverables/figures/pipeline.png)
 
 - `control_sft`: normal helpful/control SFT parent.
 - `honest_sft`: honesty-vaccine parent.
@@ -84,18 +76,7 @@ Speaker note:
 
 **The implemented system turns traces and adapters into scored artifacts.**
 
-```mermaid
-flowchart LR
-  D["Validated shell traces<br/>data/shell_game_v1"]
-  T["LoRA adapters<br/>control + honesty + corrupt"]
-  E["scripts/eval_runner.py<br/>shell + transfer"]
-  P["Scored JSONL<br/>behavior labels + prompt IDs"]
-  A["Activation extraction<br/>residual stream by layer"]
-  R["Linear probes<br/>AUC by layer"]
-  O["Plots + deck/report"]
-
-  D --> T --> E --> P --> A --> R --> O
-```
+![Pipeline](../deliverables/figures/pipeline.png)
 
 Demo path:
 
@@ -146,9 +127,7 @@ Speaker note:
 
 Artifact:
 
-```text
-outputs/path_a_clean_plots_20260503/behavior_deception_rate.png
-```
+![Behavior deception rate](../deliverables/figures/behavior_deception_rate.png)
 
 Speaker note:
 
@@ -196,13 +175,13 @@ Speaker note:
 
 **The clean probe result survives, but it is smaller and preliminary.**
 
-| Stage | Pos/neg | Train/test | Best layer | Best AUC | Split |
-|---|---:|---:|---:|---:|---|
-| base | 32/8 | 32/8 | L2 | 0.917 | row-stratified; unique prompt IDs |
-| control_sft | 28/8 | 28/8 | L23 | 1.000 | row-stratified; unique prompt IDs |
-| honest_sft | 22/17 | 31/8 | L23 | 0.667 | row-stratified; unique prompt IDs |
-| control_clean_corrupt | 21/18 | 31/8 | L8 | 0.625 | row-stratified; unique prompt IDs |
-| honest_clean_corrupt | 25/13 | 30/8 | L25 | 0.733 | row-stratified; unique prompt IDs |
+| Stage | Pos/neg | Train/test | Best layer | Best AUC | Balanced acc | Split |
+|---|---:|---:|---:|---:|---:|---|
+| base | 32/8 | 32/8 | L2 | 0.917 | 0.667 | row-stratified; unique prompt IDs |
+| control_sft | 28/8 | 28/8 | L23 | 1.000 | 0.917 | row-stratified; unique prompt IDs |
+| honest_sft | 22/17 | 31/8 | L23 | 0.667 | 0.700 | row-stratified; unique prompt IDs |
+| control_clean_corrupt | 21/18 | 31/8 | L8 | 0.625 | 0.375 | row-stratified; unique prompt IDs |
+| honest_clean_corrupt | 25/13 | 30/8 | L25 | 0.733 | 0.733 | row-stratified; unique prompt IDs |
 
 - The clean-corrupt stages are moderate, not perfect.
 - `control_sft` is highly separable, which is interesting but not yet a broad
@@ -213,9 +192,7 @@ Speaker note:
 
 Artifact:
 
-```text
-outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png
-```
+![Layer migration](../deliverables/evidence/path_a_clean_20260503/probes_v2/layer_migration.png)
 
 Speaker note:
 
@@ -244,7 +221,7 @@ Speaker note:
 
 **To move from prototype to claim, improve the eval surface before scaling the model.**
 
-- Expand the prompt-diverse eval beyond 20 variants per condition.
+- Run the 60-template expanded eval at 100 seeds per condition.
 - Expand Python-transfer prompts beyond a single tamper task.
 - Treat SFT corruption as MVP; evaluate DPO/PPO only if time remains.
 - Use grouped eval-clean labels as the default probe target; keep trace-smoke as

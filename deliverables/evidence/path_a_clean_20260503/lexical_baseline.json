@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "kfold_requested": 3,
+  "seed": 42,
+  "cells": [
+    {
+      "cell": "base__corrupt_reward",
+      "stage": "base",
+      "condition": "corrupt_reward",
+      "status": "ok",
+      "rows": 20,
+      "positive": 17,
+      "negative": 3,
+      "kfold": 3,
+      "auc": 0.29411764705882354,
+      "acc": 0.85,
+      "balanced_accuracy": 0.5
+    },
+    {
+      "cell": "base__neutral",
+      "stage": "base",
+      "condition": "neutral",
+      "status": "ok",
+      "rows": 20,
+      "positive": 15,
+      "negative": 5,
+      "kfold": 3,
+      "auc": 0.7866666666666667,
+      "acc": 0.75,
+      "balanced_accuracy": 0.5
+    },
+    {
+      "cell": "control_clean_corrupt__corrupt_reward",
+      "stage": "control_clean_corrupt",
+      "condition": "corrupt_reward",
+      "status": "ok",
+      "rows": 19,
+      "positive": 11,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.6818181818181818,
+      "acc": 0.631578947368421,
+      "balanced_accuracy": 0.5795454545454546
+    },
+    {
+      "cell": "control_clean_corrupt__neutral",
+      "stage": "control_clean_corrupt",
+      "condition": "neutral",
+      "status": "ok",
+      "rows": 20,
+      "positive": 10,
+      "negative": 10,
+      "kfold": 3,
+      "auc": 0.37,
+      "acc": 0.35,
+      "balanced_accuracy": 0.35
+    },
+    {
+      "cell": "control_sft__corrupt_reward",
+      "stage": "control_sft",
+      "condition": "corrupt_reward",
+      "status": "ok",
+      "rows": 18,
+      "positive": 14,
+      "negative": 4,
+      "kfold": 3,
+      "auc": 0.30357142857142855,
+      "acc": 0.7777777777777778,
+      "balanced_accuracy": 0.5
+    },
+    {
+      "cell": "control_sft__neutral",
+      "stage": "control_sft",
+      "condition": "neutral",
+      "status": "ok",
+      "rows": 18,
+      "positive": 14,
+      "negative": 4,
+      "kfold": 3,
+      "auc": 0.375,
+      "acc": 0.7777777777777778,
+      "balanced_accuracy": 0.5
+    },
+    {
+      "cell": "honest_clean_corrupt__corrupt_reward",
+      "stage": "honest_clean_corrupt",
+      "condition": "corrupt_reward",
+      "status": "ok",
+      "rows": 19,
+      "positive": 14,
+      "negative": 5,
+      "kfold": 3,
+      "auc": 0.2571428571428571,
+      "acc": 0.7368421052631579,
+      "balanced_accuracy": 0.5
+    },
+    {
+      "cell": "honest_clean_corrupt__neutral",
+      "stage": "honest_clean_corrupt",
+      "condition": "neutral",
+      "status": "ok",
+      "rows": 19,
+      "positive": 11,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.3863636363636363,
+      "acc": 0.3684210526315789,
+      "balanced_accuracy": 0.3352272727272727
+    },
+    {
+      "cell": "honest_sft__corrupt_reward",
+      "stage": "honest_sft",
+      "condition": "corrupt_reward",
+      "status": "ok",
+      "rows": 20,
+      "positive": 12,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.020833333333333332,
+      "acc": 0.4,
+      "balanced_accuracy": 0.3333333333333333
+    },
+    {
+      "cell": "honest_sft__neutral",
+      "stage": "honest_sft",
+      "condition": "neutral",
+      "status": "ok",
+      "rows": 19,
+      "positive": 10,
+      "negative": 9,
+      "kfold": 3,
+      "auc": 0.9333333333333333,
+      "acc": 0.7368421052631579,
+      "balanced_accuracy": 0.7277777777777779
+    }
+  ],
+  "cells_by_name": {
+    "base__corrupt_reward": {
+      "status": "ok",
+      "rows": 20,
+      "positive": 17,
+      "negative": 3,
+      "kfold": 3,
+      "auc": 0.29411764705882354,
+      "acc": 0.85,
+      "balanced_accuracy": 0.5
+    },
+    "base__neutral": {
+      "status": "ok",
+      "rows": 20,
+      "positive": 15,
+      "negative": 5,
+      "kfold": 3,
+      "auc": 0.7866666666666667,
+      "acc": 0.75,
+      "balanced_accuracy": 0.5
+    },
+    "control_clean_corrupt__corrupt_reward": {
+      "status": "ok",
+      "rows": 19,
+      "positive": 11,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.6818181818181818,
+      "acc": 0.631578947368421,
+      "balanced_accuracy": 0.5795454545454546
+    },
+    "control_clean_corrupt__neutral": {
+      "status": "ok",
+      "rows": 20,
+      "positive": 10,
+      "negative": 10,
+      "kfold": 3,
+      "auc": 0.37,
+      "acc": 0.35,
+      "balanced_accuracy": 0.35
+    },
+    "control_sft__corrupt_reward": {
+      "status": "ok",
+      "rows": 18,
+      "positive": 14,
+      "negative": 4,
+      "kfold": 3,
+      "auc": 0.30357142857142855,
+      "acc": 0.7777777777777778,
+      "balanced_accuracy": 0.5
+    },
+    "control_sft__neutral": {
+      "status": "ok",
+      "rows": 18,
+      "positive": 14,
+      "negative": 4,
+      "kfold": 3,
+      "auc": 0.375,
+      "acc": 0.7777777777777778,
+      "balanced_accuracy": 0.5
+    },
+    "honest_clean_corrupt__corrupt_reward": {
+      "status": "ok",
+      "rows": 19,
+      "positive": 14,
+      "negative": 5,
+      "kfold": 3,
+      "auc": 0.2571428571428571,
+      "acc": 0.7368421052631579,
+      "balanced_accuracy": 0.5
+    },
+    "honest_clean_corrupt__neutral": {
+      "status": "ok",
+      "rows": 19,
+      "positive": 11,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.3863636363636363,
+      "acc": 0.3684210526315789,
+      "balanced_accuracy": 0.3352272727272727
+    },
+    "honest_sft__corrupt_reward": {
+      "status": "ok",
+      "rows": 20,
+      "positive": 12,
+      "negative": 8,
+      "kfold": 3,
+      "auc": 0.020833333333333332,
+      "acc": 0.4,
+      "balanced_accuracy": 0.3333333333333333
+    },
+    "honest_sft__neutral": {
+      "status": "ok",
+      "rows": 19,
+      "positive": 10,
+      "negative": 9,
+      "kfold": 3,
+      "auc": 0.9333333333333333,
+      "acc": 0.7368421052631579,
+      "balanced_accuracy": 0.7277777777777779
+    }
+  }
+}

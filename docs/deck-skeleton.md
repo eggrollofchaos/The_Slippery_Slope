@@ -60,20 +60,7 @@ Current artifacts:
 
 Pipeline figure:
 
-```mermaid
-flowchart LR
-  D["Validated shell-game traces<br/>data/shell_game_v1"]
-  T["LoRA SFT<br/>control + honesty parents"]
-  C["Corruption SFT<br/>deceptive shell traces"]
-  E["Evaluation runner<br/>shell + Python transfer"]
-  P["Prompt-clean probe inputs<br/>behavior labels + group IDs"]
-  A["Activation extraction<br/>Gemma residual stream"]
-  R["Per-layer probes<br/>AUC by layer"]
-  S["Slides/report<br/>plots + limitations"]
-
-  D --> T --> C --> E --> P --> A --> R --> S
-  D --> C
-```
+![Pipeline](../deliverables/figures/pipeline.png)
 
 ## Slide 6: Evaluation Lane
 
@@ -110,7 +97,7 @@ Goal:
 
 Final if available:
 
-- Use `outputs/path_a_clean_plots_20260503/behavior_deception_rate.png`.
+- Use `deliverables/figures/behavior_deception_rate.png`.
 - Clean Path A result: base remains high (0.85 corrupt reward, 0.75 neutral),
   while the fresh clean-corruption adapters do not reproduce the old leaky-era
   corruption spike.
@@ -144,7 +131,7 @@ Goal:
 
 Final if available:
 
-- Use `outputs/path_a_clean_probes_20260503/layer_migration_path_a_clean_20260503.png`.
+- Use `deliverables/evidence/path_a_clean_20260503/probes_v2/layer_migration.png`.
 - Prompt-clean probes for all five stages, with row-wise splits only because
   prompt IDs are unique in-stage. Clean-corrupt best AUCs are moderate
   (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733), not perfect.
@@ -189,7 +176,7 @@ Fallback:
 
 ## Slide 14: Next Work
 
-- Expand prompt-diverse shell eval beyond 20 prompts per condition.
+- Run the 60-template expanded eval at 100 seeds per condition.
 - Add repeated-split or bootstrap probe intervals so the 8-row holdouts are not
   over-read.
 - Expand data and test whether signals persist under broader tasks.

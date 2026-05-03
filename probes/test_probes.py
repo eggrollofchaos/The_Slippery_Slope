@@ -27,6 +27,8 @@ from probes.extract import (  # noqa: E402
     save_activations,
 )
 from probes.run_all import (  # noqa: E402
+    infer_prompt_cell,
+    labels_have_both_classes,
     parse_stage_specs,
     select_probe_groups,
     validate_labels,
@@ -212,6 +214,8 @@ def test_run_all_stage_specs_and_label_validation():
         "honest_corrupt",
     ]
     assert parse_stage_specs(["base:none"]) == [("base", None)]
+    assert labels_have_both_classes(np.array([0, 1, 1], dtype=np.int64)) is True
+    assert labels_have_both_classes(np.array([0, 0], dtype=np.int64)) is False
     validate_labels(np.array([0, 1, 1], dtype=np.int64))
     try:
         validate_labels(np.array([0, 0], dtype=np.int64))
@@ -233,6 +237,16 @@ def test_run_all_stage_specs_and_label_validation():
     assert select_probe_groups(unique_meta, "auto") is None
     assert select_probe_groups(duplicate_meta, "row") is None
     assert select_probe_groups(unique_meta, "group").tolist() == ["a", "b"]
+    assert (
+        infer_prompt_cell([Path("base__neutral.jsonl")], [("base", None)])
+        == "base__neutral"
+    )
+    try:
+        infer_prompt_cell([Path("honest_sft__neutral.jsonl")], [("base", None)])
+    except ValueError as exc:
+        assert "does not match stage" in str(exc)
+    else:
+        raise AssertionError("expected mismatched per-condition cell to fail")
     print("test_run_all_stage_specs_and_label_validation OK")
 
 
@@ -249,6 +263,7 @@ def test_grouped_probe_split_blocks_duplicate_leakage():
     assert first["split_strategy"] == "group_shuffle"
     assert first["train_groups"] == 2
     assert first["test_groups"] == 2
+    assert "balanced_accuracy" in first
 
     impossible_groups = np.array(
         ["h1", "h1", "h1", "h1", "d1", "d1", "d1", "d1"], dtype=object
@@ -296,6 +311,11 @@ def test_train_and_plot():
         save_results(results, results_path, stage="synthetic", run_id="smoke")
         reloaded = load_results(results_path)
         assert set(reloaded.keys()) == set(results.keys())
+        raw = json.loads(results_path.read_text())
+        assert raw["schema_version"] == 2
+        assert "balanced_accuracy" in raw["per_layer"]["0"]
+        assert "splits" in raw
+        assert "fold_predictions" in raw["per_layer"]["0"]
 
         # fake two stages to exercise the plot legend path
         results_shifted = {

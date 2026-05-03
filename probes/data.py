@@ -162,6 +162,9 @@ def load_probe_examples(
             label = _infer_label(record, path)
             stage = _infer_stage(record, path)
             record_id = str(record.get("run_id") or f"{path.as_posix()}:{line_no}")
+            source_record_id = str(
+                record.get("record_id") or record.get("prompt_id") or record_id
+            )
             model_input = _model_input_from_record(record, path, line_no, trace_smoke)
 
             model_inputs.append(model_input)
@@ -169,12 +172,18 @@ def load_probe_examples(
             metadata.append(
                 {
                     "record_id": record_id,
+                    "source_record_id": source_record_id,
                     "group_id": _stable_group_id(record, model_input),
                     "source": str(path),
                     "line_no": line_no,
                     "stage": stage,
                     "label": label,
                     "trace_smoke": trace_smoke,
+                    "eval_condition": record.get("eval_condition"),
+                    "prompt_seed": record.get("prompt_seed"),
+                    "prompt_variant": record.get("prompt_variant"),
+                    "prompt_family": record.get("prompt_family"),
+                    "prompt_id": record.get("prompt_id"),
                     "true_position": record.get("true_position"),
                     "claimed_position": record.get("claimed_position"),
                 }

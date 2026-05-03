@@ -27,7 +27,7 @@ STAGE_ORDER = [
 
 def read_result(path: Path) -> tuple[str, dict[int, dict[str, Any]]]:
     raw = json.loads(path.read_text(encoding="utf-8"))
-    stage = str(raw["stage"])
+    stage = str(raw.get("cell") or raw["stage"])
     per_layer = {int(layer): metrics for layer, metrics in raw["per_layer"].items()}
     return stage, per_layer
 
@@ -49,10 +49,13 @@ def write_summary(
     results_by_stage: dict[str, dict[int, dict[str, Any]]], out_path: Path
 ) -> None:
     lines = [
-        "| Stage | Best layer | Best AUC | Best acc | Split | Train/Test | Groups |",
-        "|---|---:|---:|---:|---|---:|---:|",
+        "| Stage/cell | Best layer | Best AUC | Best acc | Best balanced acc | Split | Train/Test | Groups |",
+        "|---|---:|---:|---:|---:|---|---:|---:|",
     ]
     for stage in sorted(results_by_stage, key=sort_key):
+        if not results_by_stage[stage]:
+            lines.append(f"| {stage} | - | - | - | - | degenerate | - | - |")
+            continue
         layer, metrics = best_layer(results_by_stage[stage])
         train_groups = metrics.get("train_groups")
         test_groups = metrics.get("test_groups")
@@ -62,12 +65,13 @@ def write_summary(
             else f"{train_groups}/{test_groups}"
         )
         lines.append(
-            "| {stage} | {layer} | {auc:.3f} | {acc:.3f} | {split} | "
-            "{n_train}/{n_test} | {groups} |".format(
+            "| {stage} | {layer} | {auc:.3f} | {acc:.3f} | {bal:.3f} | "
+            "{split} | {n_train}/{n_test} | {groups} |".format(
                 stage=stage,
                 layer=layer,
                 auc=float(metrics.get("auc", float("nan"))),
                 acc=float(metrics.get("acc", float("nan"))),
+                bal=float(metrics.get("balanced_accuracy", float("nan"))),
                 split=metrics.get("split_strategy", "-"),
                 n_train=metrics.get("n_train", "-"),
                 n_test=metrics.get("n_test", "-"),

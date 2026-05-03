@@ -138,3 +138,18 @@ outputs/probes_eval_clean/layer_migration_<run_id>.png
 
 Label trace-smoke plots clearly. They validate the pipeline, not the final
 interpretability claim.
+
+## PPTX Lock
+
+- Hard checkpoint: 2026-05-04 18:00 local.
+- After lock: only typo/text fixes inside Keynote; no figure swaps or slide
+  reorders.
+- Final filename pattern: `deliverables/slippery-slope-final-<YYYYMMDD>.pptx`.
+- Verify: open the file once after lock; record the timestamp here.
+- May 5 PPTX uses the Phase 0 no-CI layer-migration plot. Phase 1 CI plots land
+  in the report; an optional post-presentation deck copy may add CI bars later.
+
+Deck dry-run:
+
+- Target: <=12 minutes.
+- Status: not yet timed.
