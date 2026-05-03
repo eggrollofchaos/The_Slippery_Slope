@@ -297,7 +297,7 @@ P0.5 (entry) and P6.4 (exit) both run the public-surface grep on the same regex:
 |---|---|---|---|
 | Tier 1 evidence at `outputs/path_a_expanded_20260503_140104/` is missing or incomplete | Low | High | Surface as a blocker in P0.1; do not start Tier 2 without a clean baseline ledger. |
 | OOM during retraining | Low | Med | Reduce grad_accum or epochs. |
-| Held-out family has < 10 rows/cell after Phase 3 | Med | Med | Label as diagnostic-only; do not block Tier 2; flag in report. |
+| Held-out family has < 10 usable rows/cell after Phase 3 | Med | Med | P4.0 hard-aborts; pursue spec § 5 recovery options (increase rounds, choose different holdout family, or drop held-out-family analysis from Tier 2). |
 | Catastrophic forgetting on v2 corpus | Low | High | Reduce epochs to 2; rerun from P2.0 smoke. |
 | Probe AUC gap in T2 vanishes | Med | Med | Surface as a finding; report shifts to "not robust to scale" rather than "robust". |
 | Wall-time blowout > 36 hr | Low | High | Drop to 2 seeds (skip `--seed 2024`); document the deviation in report Limitations. |

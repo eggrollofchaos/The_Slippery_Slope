@@ -447,7 +447,7 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
 ### Phase 4 acceptance gates
 
 - True transfer probe (P4.4) is the primary held-out evidence; within-subset CV (P4.3) is a secondary diagnostic.
-- All cells with sufficient rows have both metrics; underpowered cells listed in footnote.
+- All 18 expected `(stage, condition, holdout)` cells have ≥ 10 usable rows; if any cell falls short, P4.0 aborts and Tier 2 follows the recovery options in spec § 5 (increase rounds, choose different holdout family, or drop held-out-family analysis).
 
 ## Phase 5 — Multi-seed analysis, lexical canary, plot updates
 
