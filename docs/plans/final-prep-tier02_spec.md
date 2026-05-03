@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v4 (2026-05-03)
+Status: draft v5 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -65,15 +65,25 @@ The exact triplet doesn't matter; what matters is that the three are determinist
 
 `envs/shell_game.py` declares ≥ 40 `_PROMPT_VARIANTS` with `prompt_family` metadata. Sample families observed in `outputs/path_a_expanded_20260503_140104/eval_expanded.jsonl`: `baseline`, plus families derived from `prompt_variant_family(...)` over the registry.
 
-### Selection algorithm (P1.5.0)
+### Selection algorithm (P1.5.0) — exact seed simulation, post-v3-H2
 
-1. Build v2 corpus with all families.
-2. Inspect `data/shell_game_v2/MANIFEST.md` per-family counts.
-3. For each family, compute the predicted Phase 4 held-out row count per `(stage, condition)` cell at the planned `--rounds`. The eval seeds prompt variants via `seed % len(_PROMPT_VARIANTS)`, so a family with `K` variants yields approximately `K × rounds / len(_PROMPT_VARIANTS) × 2` rows per stage (factor 2 for the two `eval_condition` values, but those are evaluated separately so per-cell is `K × rounds / len(_PROMPT_VARIANTS)`).
-4. Pick the family with the highest predicted-rows-per-cell that is **not** also the dominant training-data family. Rationale: removing the dominant family from training would gut the corruption signal; removing a small family doesn't give enough Phase 4 evidence.
-5. Verify the predicted minimum ≥ 10. If not, increase `--rounds`.
+1. Build v2 corpus with all families (≥ 7 distinct families × ≥ 50 rows per the v2 M2 / v3 plan target).
+2. Inspect `$ARTIFACT_ROOT/data/shell_game_v2/MANIFEST.md` per-family counts.
+3. For each family, compute the **exact** predicted Phase 4 held-out row count **per `(stage, condition)` cell** at the planned `--rounds`. Use the seed simulation in P1.5.0 of the plan:
+   ```python
+   from envs.shell_game import _PROMPT_VARIANTS, prompt_variant_family
+   V = len(_PROMPT_VARIANTS)
+   def predicted_per_cell(family, rounds, seed0=0):
+       return sum(
+         1 for s in range(seed0, seed0 + rounds)
+         if prompt_variant_family(_PROMPT_VARIANTS[s % V], s % V) == family
+       )
+   ```
+   The result is per `(stage, condition)` cell directly; conditions are not pooled (the v2 review's H2 was about a stale factor-of-two formula).
+4. Pick the family with the highest `predicted_per_cell` that is **not** the dominant training-data family. Rationale: removing the dominant family would gut the corruption signal; removing a small family yields too little Phase 4 evidence. Tie-breaking: among families tied for largest training count, exclude the candidate with highest `predicted_per_cell`; if still tied, lexicographic order on family name (deterministic).
+5. Verify `predicted_per_cell ≥ 13` (the 1.3× safety margin over 10 absorbs parser-error exclusion). If not, increase `--rounds` to the smallest multiple of 50 that satisfies the margin.
 
-The chosen family is recorded in `data/shell_game_v2/holdout_family.md` and used by `scripts/scale_shell_game_data.py --holdout-family <name>` to emit a v2 SFT corpus that excludes it.
+The chosen family is recorded in `$ARTIFACT_ROOT/data/shell_game_v2/holdout_family.md` (mirrored to `$WORKTREE_ROOT/data/shell_game_v2/holdout_family.md` per P1.4 for branch tracking) and used by `experiments/scale_shell_game_data.py --holdout-family <name>` to emit a v2 SFT corpus that excludes it.
 
 ### Edge case: held-out family has < 10 eval rows per cell after Phase 3
 
@@ -90,7 +100,7 @@ Held-out family AUCs may differ from in-family AUCs simply because the family is
 1. Enumerating `(template_id, persona, position, truth, eval_condition)` tuples drawn from the registry (`_PROMPT_VARIANTS` × persona registry × {0,1,2} × {True, False} × shell-eval condition list).
 2. Emitting `prompt_family` metadata via `prompt_variant_family(...)` in every row.
 3. Rejecting duplicate `(template_id, persona, position, truth)` tuples.
-4. Targeting ≥ 6 distinct families with ≥ 50 rows each, ≥ 12 unique combinations per family.
+4. **All-family build target ≥ 7 distinct families with ≥ 50 rows each** (so the post-holdout training corpus retains ≥ 6 families per the v2 M2 fix), ≥ 12 unique combinations per family.
 
 Two paths to a 500-row corpus were considered:
 
@@ -158,9 +168,13 @@ For each `(seed-suffixed stage, condition)` cell, `probes/run_all.py --stages <s
 
 ### 9.2 True transfer probe (P0.7 + P4.4)
 
-`scripts/probe_transfer.py` (new) addresses H6. It accepts pre-extracted activation `.npz` files via `--train-activations` and `--eval-activations` (one per `(stage, condition, family)` triple, written by `scripts/extract_probe_activations.py` in P4.0.1) and matched label JSONLs via `--train-labels` / `--eval-labels`. Fits a logistic-regression probe per layer on the in-family activations and evaluates on the held-out activations.
+`scripts/probe_transfer.py` (new) addresses H6 + closes the v3 C1 integrity gap. Inputs are **only** the two pre-extracted activation `.npz` files via `--train-activations` and `--eval-activations` (one per `(stage, condition, family)` triple, written by `scripts/extract_probe_activations.py` in P4.2.1). Labels and `record_ids` are embedded in the `.npz` files; the tool **does not** accept separate label JSONLs (passing them would defeat the integrity contract).
 
-**No fallback** (H5 v2 review fix): when `min(pos, neg) < 5` on either side, the tool writes `status: "degenerate"`, `auc: null`, `balanced_accuracy: null` plus the counts. It does NOT substitute within-train CV — that would silently turn a held-out transfer claim into an in-family diagnostic, which is the exact overclaim Tier 2 is trying to avoid. Within-subset CV is reported separately in P4.3.
+**Cache-pairing validation** (v4 H3): before fitting, the tool reads each sidecar manifest and asserts that train and eval share `stage`, `condition`, `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `prompt_render_sha256`. It also asserts `family_split` differs (`infamily` for train, `holdout` for eval). Any mismatch aborts with a clear error.
+
+**No fallback** (v2 H5): when `min(pos, neg) < 5` on either side, the tool writes `status: "degenerate"`, no `per_layer` payload, `auc: null`, `balanced_accuracy: null` at top level. It does NOT substitute within-train CV — that would silently turn a held-out transfer claim into an in-family diagnostic, which is the exact overclaim Tier 2 is trying to avoid. Within-subset CV is reported separately in P4.3.
+
+**Output schema** (v3 H4 — mirrors existing probe schema 2): `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}}`. This shape is exactly what `scripts/bootstrap_ci.py` consumes, so P5.2 adds CIs without modifying the bootstrap script.
 
 This is the cheapest faithful test of "does the probe trained on in-family data generalize to held-out wording". It does not implement matched-difficulty control tasks (Hewitt & Liang) — that's Tier 3 backlog.
 
@@ -297,13 +311,15 @@ To prevent scope drift, explicitly out:
 - **Renaming `experiments/train_clean_corruption.py`.** Internal script; renaming churns imports for no public-surface benefit. The `--stage-name` flag controls public outputs.
 - **Hewitt/Liang matched-difficulty control task.** Tier 3 stretch.
 
-## 17. Activation caching design (H7 v2 review)
+## 17. Activation caching design (v2 H7 + v3 C1 + v4 H3)
 
 The naïve Phase 4 path (P4.3 within-subset + P4.4 transfer) would invoke `probes/run_all.py` and `scripts/probe_transfer.py` separately for each `(stage, condition, family)` triple, with each call loading the model + adapter and extracting activations from scratch. With 36 within-subset cells + 18 transfer cells, that's up to 54 model loads — each ~30–60 s on M5 Max + adapter merge cost — plus repeated activation extraction over the same prompt rows.
 
 Caching design:
 
-- `scripts/extract_probe_activations.py` (new in P0.7) writes one `.npz` per `(stage, condition, family)` triple plus a sidecar JSON manifest (`schema_version: 1`) keyed on `(adapter_dir_sha256, prompt_render_sha256, prompt_count, layer_count)`.
+- `scripts/extract_probe_activations.py` (new in P0.7) writes one `.npz` per `(stage, condition, family)` triple. The **`.npz` itself** carries `activations`, `labels`, and `record_ids` — labels and identity travel with the activations, eliminating the v3 C1 "wrong labels paired with right activations" failure mode.
+- The **sidecar JSON** (`<.npz>.json`, `schema_version: 1`) carries the full identity contract: `stage`, `condition`, `family_split` (`"infamily"` or `"holdout"`), `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `record_count`, plus integrity hashes `prompt_jsonl_sha256`, `labels_sha256`, `record_ids_sha256`, `prompt_render_sha256`. Idempotence: on rerun, the extractor checks all hashes against the source artifacts and skips if everything matches (unless `--overwrite`).
+- `probe_transfer.py` consumes paired `.npz` files only — no separate label JSONL argument. Before fitting, it asserts the v4 H3 cache-pairing contract: train and eval sidecars share `stage`, `condition`, `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `prompt_render_sha256`; `family_split` differs (`infamily` train vs `holdout` eval).
 - `probes/run_all.py` is **not** modified to consume `.npz` files — the within-subset path still extracts activations internally because that's the existing tested path. The `.npz` cache exists primarily for `probe_transfer.py`, which needs paired train/eval activations from the same `(stage, condition)` cell.
 - This means within-subset (36 cells) and transfer (18 cells) are not fully merged. Total invocations stay around 36 + 18 = 54, but each transfer invocation is fast (loads pre-computed `.npz`, no model load). The model-load count drops from 54 to ~36.
 
