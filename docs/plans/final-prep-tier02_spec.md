@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v2 (2026-05-03)
+Status: draft v3 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -154,7 +154,9 @@ For each `(seed-suffixed stage, condition)` cell, `probes/run_all.py --stages <s
 
 ### 9.2 True transfer probe (P0.7 + P4.4)
 
-`scripts/probe_transfer.py` (new) addresses H6. It accepts `--train-prompts` and `--eval-prompts` JSONLs (typically the in-family and held-out subsets of a `(stage, condition)` cell), extracts activations for both, fits a logistic-regression probe per layer on the train set, and evaluates on the eval set.
+`scripts/probe_transfer.py` (new) addresses H6. It accepts pre-extracted activation `.npz` files via `--train-activations` and `--eval-activations` (one per `(stage, condition, family)` triple, written by `scripts/extract_probe_activations.py` in P4.0.1) and matched label JSONLs via `--train-labels` / `--eval-labels`. Fits a logistic-regression probe per layer on the in-family activations and evaluates on the held-out activations.
+
+**No fallback** (H5 v2 review fix): when `min(pos, neg) < 5` on either side, the tool writes `status: "degenerate"`, `auc: null`, `balanced_accuracy: null` plus the counts. It does NOT substitute within-train CV — that would silently turn a held-out transfer claim into an in-family diagnostic, which is the exact overclaim Tier 2 is trying to avoid. Within-subset CV is reported separately in P4.3.
 
 This is the cheapest faithful test of "does the probe trained on in-family data generalize to held-out wording". It does not implement matched-difficulty control tasks (Hewitt & Liang) — that's Tier 3 backlog.
 
@@ -191,17 +193,29 @@ The pass-criteria is **not** a hard gate. Per H7's resolution: high lexical AUC 
 
 This handles the post-PR9 finding that lexical baselines are often strong: the Tier 2 evidence is honest about which cells are confounded rather than failing the whole pipeline.
 
-## 12. Schema versioning
+## 12. Schema versioning (per-artifact, not global)
 
-All Tier 2 JSON artifacts have `schema_version: "1.0"`:
+Per M4 v2 review: the existing repo uses **integer** schema versions per artifact type:
 
-- `data/shell_game_v2/MANIFEST.md` (frontmatter)
-- `checkpoints/tier2_corruption/adapter_manifest.json`
-- `deliverables/evidence/canonical_tier2_<DATE>/probes/seed_aggregated.json`
-- `deliverables/evidence/canonical_tier2_<DATE>/probes/lexical_<family>/<cell>.json`
-- `scripts/probe_transfer.py` output `probe_results_transfer.json`
+- `scripts/eval_runner.py` writes manifests with `schema_version: 1`.
+- `scripts/lexical_baseline.py` writes outputs with `schema_version: 1`.
+- `probes/run_all.py` and `probes/train.py` write probe results with `schema_version: 2`.
 
-Forward-compat policy: any reader script that finds `schema_version != "1.0"` aborts with a clear error rather than silently producing wrong output.
+Tier 2 preserves these per-artifact contracts and adds new artifacts with their own integer schemas:
+
+| Artifact | Schema | Version |
+|---|---|---|
+| `<canonical_tier2>/eval/manifest.json` | eval manifest | `1` (existing) |
+| `<canonical_tier2>/eval/shards/*.jsonl` | eval shard | `1` (existing) |
+| `<canonical_tier2>/probes/within_subset_*/*/probe_results*.json` | probe result | `2` (existing) |
+| `<canonical_tier2>/probes/transfer/*/probe_results_transfer.json` | probe result | `2` (matches existing probe schema) |
+| `<canonical_tier2>/probes/activations/*.npz` sidecar JSON | activation manifest | `1` (new Tier 2 artifact) |
+| `<canonical_tier2>/probes/seed_aggregated.json` | seed aggregate | `1` (new Tier 2 artifact) |
+| `<canonical_tier2>/probes/lexical_*/*.json` | lexical baseline | `1` (existing) |
+| `checkpoints/tier2_corruption/adapter_manifest.json` | adapter ledger | `1` (new Tier 2 artifact) |
+| `data/shell_game_v2/MANIFEST.md` frontmatter | corpus manifest | `1` (new Tier 2 artifact) |
+
+Forward-compat policy: each reader validates the schema relevant to its own input type. A reader that finds an unexpected major version (e.g., probe schema `3`) aborts with a clear error referencing the specific artifact it was reading. Readers do **not** validate a global "Tier 2 schema_version" — there is no such thing.
 
 ## 13. Deck and report integration
 
@@ -242,7 +256,14 @@ The historical narrative (leak discovery, Path A rescue, post-PR8/PR9 evidence f
 
 ### Acceptance gate
 
-P0.5 (entry) and P6.4 (exit) both run the public-surface grep. Zero matches expected in the listed files. Code comments are not part of the gate.
+P0.5 (entry) and P6.4 (exit) both run the public-surface grep on the same regex: `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. Zero matches expected in the grader-facing files (`README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`).
+
+### Explicitly excluded from the scrub gate
+
+- **`docs/plans/`** — internal planning docs. Tier 2's own plan/spec must reference the internal `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` because those are real script parameter values; gating the plan on its own examples would be a contradiction. (This was H3 in the v2 review: the v2 plan's P0.8 subgate was internally impossible.)
+- **Code comments** in `experiments/train_clean_corruption.py`, `scripts/eval_runner.py`, etc. — these reference the internal stage keys for legitimate documentation purposes.
+- **PR #8 evidence directories** (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`) — frozen artifacts referenced for SHA-pinned baseline comparison; renaming would break PR #8.
+- **The script filename `experiments/train_clean_corruption.py`** — the regex intentionally does not match bare `clean_corrupt` (it requires the leading underscore `_clean_corrupt` to anchor on the stage suffix).
 
 ## 15. Risks and contingencies
 
@@ -271,6 +292,20 @@ To prevent scope drift, explicitly out:
 - **Editing PR #8 evidence directories.** Frozen.
 - **Renaming `experiments/train_clean_corruption.py`.** Internal script; renaming churns imports for no public-surface benefit. The `--stage-name` flag controls public outputs.
 - **Hewitt/Liang matched-difficulty control task.** Tier 3 stretch.
+
+## 18. Activation caching design (H7 v2 review)
+
+The naïve Phase 4 path (P4.3 within-subset + P4.4 transfer) would invoke `probes/run_all.py` and `scripts/probe_transfer.py` separately for each `(stage, condition, family)` triple, with each call loading the model + adapter and extracting activations from scratch. With 36 within-subset cells + 18 transfer cells, that's up to 54 model loads — each ~30–60 s on M5 Max + adapter merge cost — plus repeated activation extraction over the same prompt rows.
+
+Caching design:
+
+- `scripts/extract_probe_activations.py` (new in P0.7) writes one `.npz` per `(stage, condition, family)` triple plus a sidecar JSON manifest (`schema_version: 1`) keyed on `(adapter_dir_sha256, prompt_render_sha256, prompt_count, layer_count)`.
+- `probes/run_all.py` is **not** modified to consume `.npz` files — the within-subset path still extracts activations internally because that's the existing tested path. The `.npz` cache exists primarily for `probe_transfer.py`, which needs paired train/eval activations from the same `(stage, condition)` cell.
+- This means within-subset (36 cells) and transfer (18 cells) are not fully merged. Total invocations stay around 36 + 18 = 54, but each transfer invocation is fast (loads pre-computed `.npz`, no model load). The model-load count drops from 54 to ~36.
+
+Wall-time impact: at ~30 s per model load, savings = (54 − 36) × 30 s ≈ 9 minutes. Modest, but worth the engineering. The bigger win is probe_transfer no longer reaching for the model at all — it becomes a CPU-bound logistic regression.
+
+Future work (Tier 3 backlog): a unified probe runner that consumes pre-extracted `.npz` for both within-subset CV and transfer eval, dropping model-load count to ~18 (one per `(stage, condition)`).
 
 ## 17. Review-iteration discipline
 
