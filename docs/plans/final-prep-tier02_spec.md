@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v8 (2026-05-03)
+Status: draft v9 (2026-05-03) — post-LGTM tightening per v8 user directive (strict `_clean` removal)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -257,32 +257,35 @@ May 5 deck is locked at 2026-05-04 18:00; no Tier 2 swaps. Tier 2 evidence lands
 
 Per the user directive 2026-05-03 17:21:
 
-### What gets scrubbed
+### What gets scrubbed (v8 — expanded canonical-surface list)
 
-Public-facing surfaces lose the leak/rescue/clean framing. Files in scope:
+Public-facing surfaces AND canonical Tier 2 surfaces lose the leak/rescue/clean framing. Files in scope:
 
-- `README.md`
-- `CHANGELOG.md`
-- `docs/final-presentation-draft.md`
-- `docs/final-report-skeleton.md`
-- `docs/deck-skeleton.md`
-- `docs/local-probe-smoke-status.md`
+- **Grader-facing prose**: `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`.
+- **Branch-tracked Tier 2 metadata** under `$WORKTREE_ROOT/data/shell_game_v2/`: `MANIFEST.md`, `holdout_family.md`, `review.md`, `*.review.md`.
+- **Branch-tracked canonical evidence mirrors** under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/`: `behavior_summary.md`, `behavior_deception_rate.png` (legend strings), `seed_aggregated_summary.md`, `layer_migration_seedbands.png` (legend strings), `family_comparison.md`, `ablation_table.md`, `lexical_summary.md`.
+- **Tier 1 baseline ledger**: `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (must reference PR #8 SHAs only as frozen prior evidence; must not link from public story).
+- **Optional post-presentation deck**: `deliverables/slippery-slope-results-paper-<DATE>.pptx` slide text.
 
-Blocked terms regex (defined once in plan P0.5 as `CANONICAL_SCRUB_REGEX`): `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun` (case-insensitive). The leading underscore on `_clean_corrupt` ensures the script filename `train_clean_corruption.py` is not matched.
+Blocked terms regex (defined once in plan P0.5 as `CANONICAL_SCRUB_REGEX`, stricter under v8 user directive): `clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Bare `clean_corrupt` is now matched, so the gate's file list explicitly excludes the code-internal exception set (see below).
 
 ### What's preserved
 
 The historical narrative (leak discovery, Path A rescue, post-PR8/PR9 evidence flow) is preserved as a single Markdown file under `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md`. That path is the personal class repo, not the team repo, so graders never see it but Alex can reference it.
 
-### What's NOT scrubbed
+### What's NOT scrubbed (implementation exceptions, v8 user directive)
 
-- PR #8 evidence directories (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`). Those are frozen artifacts and renaming them would invalidate every PR #8 reference.
-- Code comments where `clean_corrupt` is the literal stage key (e.g., `STAGE_DEFAULTS` in `experiments/train_clean_corruption.py`). The script's filename and internal keys remain; only `--stage-name` controls public-facing names.
-- `docs/plans/final-prep-tier01*.md` and `docs/plans/final-prep-tier02*.md` (this plan and Tier 1's). They're internal planning docs, not grader-facing.
+The stricter regex matches bare `clean_corrupt`, which would now hit code-internal symbols. Renaming those is too invasive for the grader-facing benefit, so the gate's file list explicitly excludes:
 
-### Acceptance gate
+- **`experiments/train_clean_corruption.py`** filename and module — renaming churns imports for no grader-facing benefit. The script's `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` remain as **internal parent-adapter selection keys**. Tier 2 invokes them via `--stages control_clean_corrupt --stage-name control_corrupt_s$seed`: the `--stages` value picks the parent SFT adapter (control vs honest) from the internal map; the `--stage-name` value controls the public output directory name.
+- **Code comments and docstrings** in `scripts/` and `probes/` that reference the internal stage keys for documentation purposes.
+- **PR #8 evidence directories** (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`). Frozen historical artifacts. Tier 2 references them only via the SHA ledger in P0.1, never linked from public-story prose.
+- **`docs/plans/final-prep-tier01*.md`** and **`docs/plans/final-prep-tier02*.md`** (Tier 1 and Tier 2 plan/spec). Internal planning docs; not grader-facing. The plan must reference internal stage keys like `control_clean_corrupt` when documenting commands, so gating itself on its own examples would be a contradiction (this was the v2 H3 finding).
+- **`~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md`** (personal class repo; outside team-repo scope). The historical narrative about leak discovery, Path A rescue, and post-PR8/PR9 evidence flow lives there and is not shipped to graders.
 
-P0.5 (entry) and P6.4 (exit) both run the public-surface grep on the same regex: `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. Zero matches expected in the grader-facing files (`README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`).
+### Acceptance gate (v8 — strict regex, expanded surfaces)
+
+P0.5 (entry), P6.4 (exit), and P6.5.2 (pre-mirror artifact scrub) all run the public + canonical-surface grep on `CANONICAL_SCRUB_REGEX = clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Zero matches expected across the expanded file list (grader-facing prose + branch-tracked Tier 2 metadata + canonical evidence mirrors + baseline ledger). Implementation exceptions (`experiments/train_clean_corruption.py`, code comments, PR #8 evidence dirs, `docs/plans/`, personal class repo) are excluded by not being in the grep target set, or by explicit `:!path` exclusions when a glob accidentally widens.
 
 ### Explicitly excluded from the scrub gate
 
