@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v7 (2026-05-03)
+Status: draft v8 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -85,9 +85,17 @@ The exact triplet doesn't matter; what matters is that the three are determinist
 
 The chosen family is recorded in `$ARTIFACT_ROOT/data/shell_game_v2/holdout_family.md` (mirrored to `$WORKTREE_ROOT/data/shell_game_v2/holdout_family.md` per P1.4 for branch tracking) and used by `experiments/scale_shell_game_data.py --holdout-family <name>` to emit a v2 SFT corpus that excludes it.
 
-### Edge case: held-out family has < 10 eval rows per cell after Phase 3
+### Edge case: held-out family has < 10 eval rows per cell after Phase 3 (v6 M4 — hard abort)
 
-If the realized Phase 3 cell count is below the predicted gate (e.g., due to parser-error exclusion), Phase 4 reports the comparison as **diagnostic only** and labels the family-comparison table as "underpowered" with the actual N. We do not silently broaden the family or drop the analysis.
+If the realized Phase 3 cell count is below 10 usable rows on any of the 18 expected `(stage, condition, holdout)` cells (e.g., due to higher-than-anticipated parser-error rate), P4.0 **aborts** Phase 4. We do not silently broaden the family, do not relabel as "diagnostic only", and do not generate a transfer claim from underpowered cells.
+
+Recovery options when P4.0 aborts:
+
+1. Increase Phase 3 `--rounds` and rerun the eval (the per-cell shard manifests should resume cleanly because the existing rows match the new manifest at the prefix; only the additional seeds are extracted).
+2. Pick a different holdout family with higher predicted per-cell count and rerun P1.5.0 / P1.5.2 / P1.5.3 / Phase 3.
+3. If neither is feasible within the wall window, drop the held-out-family analysis from Tier 2 entirely and document the absence in the Limitations section. The seed-aggregated within-subset evidence still ships.
+
+This makes the gate actionable rather than aspirational.
 
 ### Edge case: held-out family has different difficulty
 
@@ -318,7 +326,7 @@ The naïve Phase 4 path (P4.3 within-subset + P4.4 transfer) would invoke `probe
 Caching design:
 
 - `scripts/extract_probe_activations.py` (new in P0.7) writes one `.npz` per `(stage, condition, family)` triple. The **`.npz` itself** carries `activations`, `labels`, and `record_ids` — labels and identity travel with the activations, eliminating the v3 C1 "wrong labels paired with right activations" failure mode.
-- The **sidecar JSON** (`<.npz>.json`, `schema_version: 1`) carries the full identity contract: `stage`, `condition`, `family_split` (`"infamily"` or `"holdout"`), `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `record_count`, plus integrity hashes `prompt_jsonl_sha256`, `labels_sha256`, `record_ids_sha256`, `prompt_render_sha256`. Idempotence: on rerun, the extractor checks all hashes against the source artifacts and skips if everything matches (unless `--overwrite`).
+- The **sidecar JSON** (`<.npz>.json`, `schema_version: 1`) carries the full identity contract: `stage`, `condition`, `family_split` (`"infamily"` or `"holdout"`), `adapter_kind` (`"base"` or `"lora"`), `model_id`, `adapter_dir_sha256` (`null` when `adapter_kind == "base"`), `layer_count`, `hidden_dim`, `record_count`, plus integrity hashes `prompt_jsonl_sha256`, `labels_sha256`, `record_ids_sha256`, `prompt_render_sha256`. Idempotence: on rerun, the extractor checks all hashes against the source artifacts and skips if everything matches (unless `--overwrite`).
 - `probe_transfer.py` consumes paired `.npz` files only — no separate label JSONL argument. Before fitting, it asserts the v4 H3 + v5 M1 cache-pairing contract: train and eval sidecars share `stage`, `condition`, `adapter_kind`, `model_id`, `adapter_dir_sha256` (both `null` for base), `layer_count`, `hidden_dim`, `prompt_render_sha256`; `family_split` differs (`infamily` train vs `holdout` eval).
 - `probes/run_all.py` is **not** modified to consume `.npz` files — the within-subset path still extracts activations internally because that's the existing tested path. The `.npz` cache exists primarily for `probe_transfer.py`, which needs paired train/eval activations from the same `(stage, condition)` cell.
 - This means within-subset (36 cells) and transfer (18 cells) are not fully merged. Total invocations stay around 36 + 18 = 54, but each transfer invocation is fast (loads pre-computed `.npz`, no model load). The model-load count drops from 54 to ~36.

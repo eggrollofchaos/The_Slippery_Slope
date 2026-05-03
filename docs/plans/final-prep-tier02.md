@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v7 (2026-05-03)
+Status: draft v8 (2026-05-03)
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
 Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
@@ -33,7 +33,7 @@ Reference state of the world (post Tier 0/1 / PR #8):
 - `scripts/eval_runner.py` v2 — sharded eval with per-cell `config_hash` over ordered `(stage, adapter_path, adapter_dir_sha256)` pairs. Cross-root resume is **not** supported (H4).
 - `scripts/assemble_eval.py` — takes `--manifest`, optional `--shard-dir`, optional `--output`. **No** `--strict` flag (H5 fix).
 - `scripts/summarize_eval_results.py` — emits Markdown by stage/benchmark; **no** `--plot` flag. Plotting lives in `scripts/plot_eval_results.py` (H5 fix).
-- `scripts/build_probe_inputs_from_eval.py` — emits per `(stage, condition)` JSONL with `behavior_label`, `record_ids`. No family filter; Phase 4 adds an out-of-band split.
+- `scripts/build_probe_inputs_from_eval.py` — emits per `(stage, condition)` JSONL with `label` (int 0/1) and `record_id` per row. No family filter; Phase 4 adds an out-of-band split.
 - `probes/run_all.py` — `--stages stage:path` repeated arguments (L1). Internal CV; **does not** support fit-on-A / eval-on-B transfer mode (H6 — Tier 2 adds `scripts/probe_transfer.py`).
 - `probes/train.py` — returns dict keyed by layer index; balanced-accuracy + bootstrap-CI patches landed in PR #8.
 - `scripts/bootstrap_ci.py` — class-stratified bootstrap with single-class-resample guard.
@@ -119,12 +119,12 @@ Wall budget: ≤ 4 hours.
   - **Task:** add `scripts/probe_transfer.py` (new, ~200 lines) AND `scripts/extract_probe_activations.py` (new, ~180 lines).
     - **`extract_probe_activations.py`** CLI: `--prompts <jsonl>`, `--stages stage:adapter_or_none`, `--stage-name <str>`, `--condition <str>`, `--family-split <"infamily"|"holdout">`, `--out <activations.npz>`, `--max-length`, `--device`, `--overwrite`. The CLI explicitly carries `--stage-name`, `--condition`, `--family-split` so the sidecar can record the cell identity (v4 H3). Reads the prompts JSONL **once** to anchor row identity, then writes a self-contained `.npz` containing:
       - `activations`: shape `(n_rows, n_layers, hidden_dim)` (or per-layer arrays if memory dictates)
-      - `labels`: shape `(n_rows,)` int array, copied from `behavior_label` in the JSONL
+      - `labels`: shape `(n_rows,)` int array, copied from each row's `label` field in the JSONL (the existing convention emitted by `scripts/build_probe_inputs_from_eval.py` and consumed by `probes/run_all.py`; the extractor accepts `behavior_label` as an alias for backward compatibility but defaults to `label`)
       - `record_ids`: shape `(n_rows,)` string array, copied from each row's `record_id` in stable order
       - **Sidecar JSON** (`<.npz>.json`) with `schema_version: 1` plus all of: `stage`, `condition`, `family_split`, `adapter_kind` (`"base"` when `--stages base:none`, else `"lora"`), `model_id`, `adapter_dir_sha256` (`null` when `adapter_kind == "base"`, else the eval_runner.sha256_tree of the adapter dir), `layer_count`, `hidden_dim`, `record_count`, `prompt_jsonl_sha256` (sha256 of the source JSONL bytes), `labels_sha256` (sha256 of the labels array bytes), `record_ids_sha256` (sha256 of `b"\n".join(record_ids.astype(bytes))`), `prompt_render_sha256` (sha256 of `envs/shell_game.py` source).
       - **Idempotence**: if `.npz` and sidecar exist and sidecar hashes still match the current source JSONL, model id, and adapter, skip extraction unless `--overwrite`.
     - **`probe_transfer.py`** CLI: `--train-activations <npz>`, `--eval-activations <npz>`, `--out-dir <dir>`, `--max-layers <int>` (default 0 = all 26), `--seed <int>` (default 42). **Reads labels and record_ids from the .npz directly** (closes C1 integrity gap). **Cache-pairing validation** (v4 H3): asserts train and eval sidecars share `stage`, `condition`, `adapter_kind`, `model_id`, `adapter_dir_sha256` (both `null` is OK when `adapter_kind == "base"`), `layer_count`, `hidden_dim`, `prompt_render_sha256`; asserts `family_split` differs (`infamily` for train, `holdout` for eval). Aborts on any mismatch. Fits one logistic-regression probe per layer on the train activations, evaluates on the eval activations (no CV mixing, no fallback). Writes `probe_results_transfer.json` matching the **existing probe schema 2**: `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}}`. For degenerate cells (`min(pos, neg) < 5` on either side): `status: "degenerate"`, no `per_layer` payload, `auc: null` and `balanced_accuracy: null` at top level. **Never** falls back to within-train CV.
-  - **Acceptance:** smoke run: synthetic 40-row prompts JSONL with `record_id` and `behavior_label`, run extraction twice (second invocation is a no-op). Run probe_transfer with `--max-layers 1`. Output JSON has `schema_version: 2`, `cell`, `n_train`, `n_eval`, `per_layer: {0: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}`. Tampering with the labels in one .npz (e.g., flipping bits) and re-running probe_transfer must abort with a clear message that the cached label hash no longer matches.
+  - **Acceptance:** smoke run uses the actual P4.2 output shape: invoke `build_probe_inputs_from_eval.py` on a 40-row mini-eval JSONL, then run `extract_probe_activations.py` against the resulting `<stage>__<condition>.jsonl` (which has `label` and `record_id` per row), then run extraction a second time (no-op). Run probe_transfer with `--max-layers 1`. Output JSON has `schema_version: 2`, `cell`, `n_train`, `n_eval`, `per_layer: {0: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}`. Tampering with the labels in one .npz (e.g., flipping bits) and re-running probe_transfer must abort with a clear message that the cached label hash no longer matches.
 - [ ] **P0.8 Internal-doc note** (replaces v2's plan-grep gate, per H3 review)
   - **Note:** Tier 2 plan + spec docs (`docs/plans/final-prep-tier02*.md`) are NOT grader-facing — they live under `docs/plans/` and are intentionally excluded from the public scrub gate. The plan must use the internal parent-key strings `control_clean_corrupt` and `honest_clean_corrupt` in P2.1/P2.2 commands because those are real `STAGE_DEFAULTS` keys in `experiments/train_clean_corruption.py`. This is by design; the `--stage-name` flag controls public output naming.
   - **Acceptance:** none. This is documentation, not a check.
@@ -181,7 +181,9 @@ Goal: build a 500 deceptive + 500 honest SFT corpus that **adds** prompt-family 
     deliverables/evidence/canonical_tier2_*/probes/transfer/
     deliverables/evidence/canonical_tier2_*/probes/probe_inputs_*/
     deliverables/evidence/canonical_tier2_*/probes/lexical_*/
+    deliverables/evidence/canonical_tier2_*/probes/*.json
     ```
+    (The trailing `*.json` rule covers root-level probe JSON like `seed_aggregated.json` so a stray copy under `$WORKTREE_ROOT` will not silently land on the branch — only the `*_summary.md` summaries and PNGs are tracked.)
   - **Task B — root-runtime exclude in `$ARTIFACT_ROOT/.git/info/exclude`** (so the root checkout's `git status` does not get noisy with hundreds of untracked heavy artifacts; this file is local to the root tree, not committed):
     ```
     # append:
@@ -196,6 +198,8 @@ Goal: build a 500 deceptive + 500 honest SFT corpus that **adds** prompt-family 
     - `git -C $WORKTREE_ROOT check-ignore -v deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_summary.md` returns nothing (tracked).
     - `git -C $WORKTREE_ROOT check-ignore -v deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl` returns the path (ignored).
     - `git -C $ARTIFACT_ROOT check-ignore -v data/shell_game_v2/` returns the path via `.git/info/exclude` (root-tree status quiet).
+    - `git -C $ARTIFACT_ROOT check-ignore -v checkpoints/tier2_corruption/` returns the path (heavy adapter dir excluded from root-tree status).
+    - `git -C $ARTIFACT_ROOT check-ignore -v deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl` returns the path (heavy raw eval JSONL excluded).
 - [ ] **P1.4 Metadata mirror to WORKTREE_ROOT** (v4 H1 — bridge artifact tree to branch):
   - **Task:** the v2 corpus generation lives at `$ARTIFACT_ROOT/data/shell_game_v2/` (gitignored heavy JSONL stays there). Mirror the **tracked** metadata files into the worktree so `git commit` lands them on `mle/final-prep-t02`:
     ```
@@ -327,8 +331,19 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
   - **Task:** `"$PY" scripts/assemble_eval.py --manifest $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/manifest.json --output $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl`. The script does not currently expose `--strict`; the manifest itself is the strict source of truth (mismatched shards already fail loudly).
   - **Acceptance:** assembler exits 0; output row count = sum of shard row counts in manifest.
 - [ ] **P3.4 Behavior summary + plot** (v2 H5, v6 H2 — actual `plot_eval_results.py` CLI):
-  - **Task:** run `"$PY" scripts/summarize_eval_results.py $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl --out $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_summary.md` for the table, then `"$PY" scripts/plot_eval_results.py $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl --out-dir $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` for the figure (the script writes `behavior_deception_rate.png` inside `--out-dir` automatically; do NOT use `--out`). If `summarize_eval_results.py` does not currently emit a per-`(stage, condition)` row layout with `n`, `deception_rate`, `parser_error_rate`, extend it as part of P3.4 with a small patch (`--by stage,condition` mode). After both files are written, mirror them to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` for branch tracking (the assembled JSONL stays in `$ARTIFACT_ROOT`, gitignored).
-  - **Acceptance:** Markdown shows 9 stage × 2 condition rows; `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png` exists; both `behavior_summary.md` and `behavior_deception_rate.png` are present under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` after the mirror step.
+  - **Task:** **first** patch `scripts/summarize_eval_results.py` to add a `--by stage,condition` mode emitting one row per `(stage, eval_condition)` with `n`, `deception_rate`, `parser_error_rate`. (Current default groups by `(stage, benchmark)` and pools conditions, which would silently collapse the 18-cell table to 9 rows.) Then run:
+    ```
+    "$PY" scripts/summarize_eval_results.py \
+      $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl \
+      --by stage,condition \
+      --out $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_summary.md
+
+    "$PY" scripts/plot_eval_results.py \
+      $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl \
+      --out-dir $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/
+    ```
+    The plot script writes `behavior_deception_rate.png` inside `--out-dir` automatically; do NOT use `--out`. After both files are written, mirror them to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` (the assembled JSONL stays in `$ARTIFACT_ROOT`, gitignored).
+  - **Acceptance:** `behavior_summary.md` has exactly **18 shell rows** (9 stages × 2 conditions), each with `n`, `deception_rate`, `parser_error_rate` columns; the `eval_condition` column appears with both `corrupt_reward` and `neutral` values per stage. `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png` exists; both `behavior_summary.md` and `behavior_deception_rate.png` are present under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` after the mirror step.
 
 ### Phase 3 acceptance gates
 
@@ -539,6 +554,15 @@ Goal: catch any tracked artifact still living only under `$ARTIFACT_ROOT` before
 - Cross-agent review: Codex via in-session file-based reviewer inbox.
 
 ## Review Decisions
+
+v7 review (Codex, 2026-05-03 18:39, `20260503_222953_ADHOC_final-prep-tier02-v7_RESPONSE.md`):
+
+- **H1** (label key drift) — fixed in P0.7: extractor reads `label` (existing convention from `build_probe_inputs_from_eval.py` and `probes/run_all.py`), accepts `behavior_label` as an alias for backward compatibility. Smoke acceptance uses real P4.2 output shape.
+- **H2** (P3.4 summary mode) — fixed: P3.4 task patches `summarize_eval_results.py` with `--by stage,condition`, then invokes the new mode; acceptance asserts 18 rows × `n` / `deception_rate` / `parser_error_rate`.
+- **M1** (spec § 17 sidecar) — fixed: spec § 17 sidecar bullet now lists `adapter_kind` alongside the rest.
+- **M2** (P1.3 Task B acceptance coverage) — fixed: acceptance now also checks `checkpoints/tier2_corruption/` and `deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl` against the root exclude.
+- **M3** (root-level probe JSON ignore) — fixed: P1.3 Task A adds `deliverables/evidence/canonical_tier2_*/probes/*.json` ignore rule; only Markdown summaries and PNGs are tracked.
+- **M4** (plan vs spec on underpowered cells) — fixed: P4.0 hard-aborts; spec § 5 lists three recovery options (more rounds, different holdout, drop family analysis).
 
 v6 review (Codex, 2026-05-03 18:30, `20260503_221839_ADHOC_final-prep-tier02-v6_RESPONSE.md`):
 
