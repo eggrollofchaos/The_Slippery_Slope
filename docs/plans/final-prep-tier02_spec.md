@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v6 (2026-05-03)
+Status: draft v7 (2026-05-03)
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.
@@ -170,7 +170,7 @@ For each `(seed-suffixed stage, condition)` cell, `probes/run_all.py --stages <s
 
 `scripts/probe_transfer.py` (new) addresses H6 + closes the v3 C1 integrity gap. Inputs are **only** the two pre-extracted activation `.npz` files via `--train-activations` and `--eval-activations` (one per `(stage, condition, family)` triple, written by `scripts/extract_probe_activations.py` in P4.2.1). Labels and `record_ids` are embedded in the `.npz` files; the tool **does not** accept separate label JSONLs (passing them would defeat the integrity contract).
 
-**Cache-pairing validation** (v4 H3): before fitting, the tool reads each sidecar manifest and asserts that train and eval share `stage`, `condition`, `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `prompt_render_sha256`. It also asserts `family_split` differs (`infamily` for train, `holdout` for eval). Any mismatch aborts with a clear error.
+**Cache-pairing validation** (v4 H3 + v5 M1): before fitting, the tool reads each sidecar manifest and asserts that train and eval share `stage`, `condition`, `adapter_kind` (`"base"` or `"lora"`), `model_id`, `adapter_dir_sha256` (both `null` is OK when `adapter_kind == "base"`), `layer_count`, `hidden_dim`, `prompt_render_sha256`. It also asserts `family_split` differs (`infamily` for train, `holdout` for eval). Any mismatch aborts with a clear error.
 
 **No fallback** (v2 H5): when `min(pos, neg) < 5` on either side, the tool writes `status: "degenerate"`, no `per_layer` payload, `auc: null`, `balanced_accuracy: null` at top level. It does NOT substitute within-train CV — that would silently turn a held-out transfer claim into an in-family diagnostic, which is the exact overclaim Tier 2 is trying to avoid. Within-subset CV is reported separately in P4.3.
 
@@ -319,7 +319,7 @@ Caching design:
 
 - `scripts/extract_probe_activations.py` (new in P0.7) writes one `.npz` per `(stage, condition, family)` triple. The **`.npz` itself** carries `activations`, `labels`, and `record_ids` — labels and identity travel with the activations, eliminating the v3 C1 "wrong labels paired with right activations" failure mode.
 - The **sidecar JSON** (`<.npz>.json`, `schema_version: 1`) carries the full identity contract: `stage`, `condition`, `family_split` (`"infamily"` or `"holdout"`), `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `record_count`, plus integrity hashes `prompt_jsonl_sha256`, `labels_sha256`, `record_ids_sha256`, `prompt_render_sha256`. Idempotence: on rerun, the extractor checks all hashes against the source artifacts and skips if everything matches (unless `--overwrite`).
-- `probe_transfer.py` consumes paired `.npz` files only — no separate label JSONL argument. Before fitting, it asserts the v4 H3 cache-pairing contract: train and eval sidecars share `stage`, `condition`, `model_id`, `adapter_dir_sha256`, `layer_count`, `hidden_dim`, `prompt_render_sha256`; `family_split` differs (`infamily` train vs `holdout` eval).
+- `probe_transfer.py` consumes paired `.npz` files only — no separate label JSONL argument. Before fitting, it asserts the v4 H3 + v5 M1 cache-pairing contract: train and eval sidecars share `stage`, `condition`, `adapter_kind`, `model_id`, `adapter_dir_sha256` (both `null` for base), `layer_count`, `hidden_dim`, `prompt_render_sha256`; `family_split` differs (`infamily` train vs `holdout` eval).
 - `probes/run_all.py` is **not** modified to consume `.npz` files — the within-subset path still extracts activations internally because that's the existing tested path. The `.npz` cache exists primarily for `probe_transfer.py`, which needs paired train/eval activations from the same `(stage, condition)` cell.
 - This means within-subset (36 cells) and transfer (18 cells) are not fully merged. Total invocations stay around 36 + 18 = 54, but each transfer invocation is fast (loads pre-computed `.npz`, no model load). The model-load count drops from 54 to ~36.
 
