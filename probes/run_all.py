@@ -19,10 +19,15 @@ Example:
 import argparse
 import json
 import os
+import sys
 import uuid
 from pathlib import Path
 
 import numpy as np
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from probes.data import ModelInput, load_probe_examples
 from probes.extract import extract_activations, save_activations
@@ -137,7 +142,7 @@ def write_degenerate_result(
     records_metadata: list[dict],
     reason: str,
 ) -> Path:
-    """Persist an explicit single-class-cell result instead of crashing late."""
+    """Persist an explicit untrainable-cell result instead of crashing late."""
     record_ids = [
         str(item.get("source_record_id") or item["record_id"])
         for item in records_metadata
@@ -167,6 +172,25 @@ def write_degenerate_result(
     path.write_text(json.dumps(serial, indent=2) + "\n", encoding="utf-8")
     print(f"[run_all] wrote degenerate result {path}: {reason}")
     return path
+
+
+def per_condition_training_blocker(
+    labels: np.ndarray,
+    groups: np.ndarray | None,
+    *,
+    kfold: int,
+) -> str | None:
+    """Return why this per-condition probe cell cannot be trained, if any."""
+    if not labels_have_both_classes(labels):
+        return "probe labels do not contain both classes"
+
+    from probes.train import validate_train_splits
+
+    try:
+        validate_train_splits(labels=labels, groups=groups, kfold=kfold)
+    except ValueError as exc:
+        return str(exc)
+    return None
 
 
 def run_stage(
@@ -329,7 +353,7 @@ def main():
         "--bootstrap",
         type=int,
         default=0,
-        help="Add bootstrap 95% CIs to saved probe results using test predictions.",
+        help="Add bootstrap 95%% CIs to saved probe results using test predictions.",
     )
     args = ap.parse_args()
     hf_token = args.hf_token or os.environ.get("HF_TOKEN")
@@ -361,13 +385,22 @@ def main():
         )
 
     too_few_per_condition = args.per_condition and min(pos, neg) < 5
-    if not labels_have_both_classes(labels) or too_few_per_condition:
+    training_blocker = (
+        per_condition_training_blocker(labels, groups, kfold=args.kfold)
+        if args.per_condition and not too_few_per_condition
+        else None
+    )
+    if (
+        not labels_have_both_classes(labels)
+        or too_few_per_condition
+        or training_blocker
+    ):
         if not args.per_condition and not labels_have_both_classes(labels):
             validate_labels(labels)
-        reason = (
-            "degenerate per-condition cell: "
+        reason_detail = training_blocker or (
             f"pos={pos}, neg={neg}; probe training skipped"
         )
+        reason = f"degenerate per-condition cell: {reason_detail}"
         for stage, _ in stage_specs:
             write_degenerate_result(
                 out_dir=out_dir,

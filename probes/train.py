@@ -147,6 +147,36 @@ def _choose_cv_splits(
     return splits, "stratified_kfold", {"groups": None}
 
 
+def validate_train_splits(
+    labels: np.ndarray,
+    groups: np.ndarray | None = None,
+    *,
+    random_state: int = 42,
+    test_size: float = 0.2,
+    kfold: int = 0,
+) -> tuple[str, dict]:
+    """Validate the split that train_probes would use without fitting probes."""
+    if kfold and kfold > 1:
+        splits, split_strategy, split_meta = _choose_cv_splits(
+            labels=labels,
+            groups=groups,
+            kfold=kfold,
+            random_state=random_state,
+        )
+        return split_strategy, {"folds": len(splits), **split_meta}
+
+    train_idx, test_idx, split_strategy, split_meta = _choose_split(
+        labels=labels,
+        groups=groups,
+        test_size=test_size,
+        random_state=random_state,
+    )
+    return (
+        split_strategy,
+        {"n_train": int(len(train_idx)), "n_test": int(len(test_idx)), **split_meta},
+    )
+
+
 def _fit_layer_probe(
     X: np.ndarray,
     labels: np.ndarray,
