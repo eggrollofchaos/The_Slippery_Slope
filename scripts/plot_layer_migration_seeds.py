@@ -16,6 +16,13 @@ COLORS = {
 }
 
 
+def seed_base_stage(stage: str) -> str:
+    for prefix in ("control_corrupt", "honest_corrupt"):
+        if stage.startswith(f"{prefix}_s"):
+            return prefix
+    return stage
+
+
 def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -30,7 +37,11 @@ def stage_condition(raw: dict[str, Any]) -> tuple[str, str]:
 
 
 def plot_aggregate(
-    ax: Any, stage: str, condition: str, by_layer: dict[str, Any]
+    ax: Any,
+    stage: str,
+    condition: str,
+    by_layer: dict[str, Any],
+    confounded_cells: set[tuple[str, str]],
 ) -> None:
     layers = sorted((int(layer), row) for layer, row in by_layer.items())
     if not layers:
@@ -44,11 +55,14 @@ def plot_aggregate(
     lows = [row["min"] for _, row in layers]
     highs = [row["max"] for _, row in layers]
     color = COLORS[stage]
+    confounded = (stage, condition) in confounded_cells
     ax.plot(
         xs,
         means,
         linewidth=2.5,
         marker="o",
+        markerfacecolor="none" if confounded else color,
+        markeredgewidth=1.6 if confounded else 1.0,
         color=color,
         label=f"{stage} mean ({seed_label})",
     )
@@ -62,7 +76,12 @@ def plot_aggregate(
     )
 
 
-def plot_single(ax: Any, raw: dict[str, Any], condition: str) -> None:
+def plot_single(
+    ax: Any,
+    raw: dict[str, Any],
+    condition: str,
+    confounded_cells: set[tuple[str, str]],
+) -> None:
     stage, raw_condition = stage_condition(raw)
     if raw_condition != condition or raw.get("status") == "degenerate":
         return
@@ -77,16 +96,34 @@ def plot_single(ax: Any, raw: dict[str, Any], condition: str) -> None:
         xs,
         ys,
         linewidth=1.8,
-        marker=".",
+        marker="o" if (stage, condition) in confounded_cells else ".",
+        markerfacecolor="none" if (stage, condition) in confounded_cells else None,
+        markeredgewidth=1.4 if (stage, condition) in confounded_cells else 1.0,
         color=COLORS.get(stage, "#666666"),
         label=stage,
     )
+
+
+def load_confounded_cells(path: Path | None) -> set[tuple[str, str]]:
+    if path is None:
+        return set()
+    raw = load_json(path)
+    cells: set[tuple[str, str]] = set()
+    for row in raw.get("cells", []):
+        if row.get("family") != "infamily" or not row.get("confounded"):
+            continue
+        stage = seed_base_stage(str(row.get("stage") or ""))
+        condition = str(row.get("condition") or "")
+        if stage and condition:
+            cells.add((stage, condition))
+    return cells
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed-aggregated", type=Path, required=True)
     parser.add_argument("--single-results", nargs="*", type=Path, default=[])
+    parser.add_argument("--lexical-summary-json", type=Path, default=None)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--title", default="Deception-feature probe AUC by layer")
     return parser.parse_args(argv)
@@ -106,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"matplotlib required for {__file__}: missing {exc.name}")
 
     singles = [load_json(path) for path in args.single_results]
+    confounded_cells = load_confounded_cells(args.lexical_summary_json)
     conditions = sorted(
         {
             condition
@@ -123,10 +161,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     for ax, condition in zip(axes[0], conditions):
         for raw in singles:
-            plot_single(ax, raw, condition)
+            plot_single(ax, raw, condition, confounded_cells)
         for stage, by_condition in payload["stages"].items():
             if condition in by_condition:
-                plot_aggregate(ax, stage, condition, by_condition[condition])
+                plot_aggregate(
+                    ax, stage, condition, by_condition[condition], confounded_cells
+                )
         ax.axhline(0.5, color="k", linestyle="--", alpha=0.3, label="chance")
         ax.set_title(condition)
         ax.set_xlabel("Layer index")
@@ -135,11 +175,18 @@ def main(argv: list[str] | None = None) -> int:
         ax.legend(loc="best", frameon=False)
     axes[0][0].set_ylabel("Probe AUC")
     fig.suptitle(args.title)
+    footer_parts = []
     if payload.get("skipped_sources"):
+        footer_parts.append(
+            "Coverage warning: seed bands exclude degenerate all-positive cells."
+        )
+    if confounded_cells:
+        footer_parts.append("Open markers: lexical AUC >= 0.65.")
+    if footer_parts:
         fig.text(
             0.5,
             0.01,
-            "Coverage warning: seed bands exclude degenerate all-positive cells; see seed_aggregated_summary.md.",
+            " ".join(footer_parts),
             ha="center",
             fontsize=9,
         )
