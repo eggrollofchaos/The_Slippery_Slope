@@ -340,9 +340,10 @@ Wall budget: 3–6 hrs.
 
 ### File-by-file checklist
 
-- [ ] **P2.0 Smoke retrain** (1 stage × 1 seed × 20 rows):
+- [x] **P2.0 Smoke retrain** (1 stage × 1 seed × 20 rows):
   - **Task:** `"$PY" experiments/train_clean_corruption.py --stages control_clean_corrupt --stage-name control_corrupt_smoke_s42 --seed 42 --dataset $ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl --max-records 20 --parent-root $ARTIFACT_ROOT/checkpoints --output-root $ARTIFACT_ROOT/checkpoints/_smoke_t2 --epochs 1.0 --overwrite`. Verifies `--seed`, `--stage-name`, `--overwrite`, `--parent-root`, dataset hash plumbing.
   - **Acceptance:** ≤ 5 min wall; `$ARTIFACT_ROOT/checkpoints/_smoke_t2/control_corrupt_smoke_s42/final_adapter/adapter_model.safetensors` exists; `run_metadata.jsonl` has `seed: 42`, `stage_name: "control_corrupt_smoke_s42"`, `dataset_sha256`. Smoke dir removed at end of P2.0.
+  - **Implementation result:** passed on MPS; final smoke train loss `3.4876`; metadata recorded `seed`, `stage_name`, `dataset_sha256`, `parent_adapter_sha256`, and `final_adapter_path`; `_smoke_t2` removed after verification.
 - [ ] **P2.1 Control corruption × 3 seeds** (C1: deceptive corpus; H1: absolute paths):
   - **Task:** for each `seed in [42, 1337, 2024]`:
     ```
