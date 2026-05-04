@@ -386,9 +386,10 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
   - **Task:** `for path in $ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter $ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter $ARTIFACT_ROOT/checkpoints/tier2_corruption/control_corrupt_s{42,1337,2024}/final_adapter $ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_s{42,1337,2024}/final_adapter; do test -d "$path" || (echo "missing $path" && exit 1); done`.
   - **Acceptance:** exits 0.
   - **Implementation result:** passed after Phase 2 completion; all parent and Tier 2 adapter directories exist under `$ARTIFACT_ROOT`.
-- [ ] **P3.1 Smoke eval** (20 rounds × 6 new adapters × 2 conditions):
+- [x] **P3.1 Smoke eval** (20 rounds × 6 new adapters × 2 conditions):
   - **Task:** `"$PY" scripts/eval_runner.py --rounds 20 --output_file $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl --shell-conditions corrupt_reward neutral --stages control_corrupt_s42 control_corrupt_s1337 control_corrupt_s2024 honest_corrupt_s42 honest_corrupt_s1337 honest_corrupt_s2024 --adapters <abs paths to 6 adapters in same order> --skip-py-transfer`.
   - **Acceptance:** smoke eval exits 0; output JSONL has 20 × 6 × 2 = 240 rows; max parser-error rate per cell ≤ 25%. `rm -f $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl` at end.
+  - **Implementation result:** passed under `caffeinate`; assembled 240 rows exactly (12 cells × 20 rows), max parser-error rate `0.000`; smoke JSONL, smoke manifest, and smoke shards were removed after validation.
 - [ ] **P3.2 Full canonical eval** (`<DATE>=YYYYMMDD` of Phase 3 start):
   - **Task:**
     ```
