@@ -60,7 +60,7 @@ The Tier 1 stages `control_clean_corrupt` / `honest_clean_corrupt` are renamed t
 
 In:
 
-1. **Public cleanup** — scrub leak/rescue/clean framing from `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`. Move the historical narrative to `~/coding/Classes/EECS-E6895/Final_Project/planning/`.
+1. **Public cleanup** — scrub rescue/clean-run framing and narrative leak-history phrases from `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`. Preserve standard ML uses such as "label leakage" when they describe a technical risk. Move the historical narrative to `~/coding/Classes/EECS-E6895/Final_Project/planning/`.
 2. **Script preflight** — extend `experiments/train_clean_corruption.py` with `--seed`, `--stage-name`, `--overwrite`, `--dataset-sha256` recording.
 3. **Improved corpus** — `$ARTIFACT_ROOT/data/shell_game_v2/`, ~500 deceptive + ~500 honest rows. Generation increases prompt-family diversity by emitting `prompt_family` metadata via the `_PROMPT_VARIANTS` registry rather than copying templates 5×. **All-family build target ≥ 7 distinct families × ≥ 50 rows each** (v2 M2: post-holdout corpus must still have ≥ 6 families). ≥ 12 unique `(template_id, persona, position, truth)` combinations per family. Tie-breaking for "dominant training-data family" in P1.5.0: among families tied for largest count, exclude only the candidate with highest `predicted_per_cell`; if still tied, lexicographic order on family name (deterministic).
 4. **Held-out prompt family** — declare one family at v2 build time; train on in-family rows only; eval on both in-family and held-out families with explicit row-count gate (H2).
@@ -114,7 +114,7 @@ Wall budget: ≤ 4 hours.
   - **Why two roots:** all heavy compute artifacts (adapters, raw eval JSONL, activations) are gitignored anyway, so writing them under `$ARTIFACT_ROOT` keeps the worktree small and prevents the "wrote to worktree, eval reads from root" mismatch. Branch-tracked artifacts live under `$WORKTREE_ROOT` so commits land on `codex-mle/tier02-plan-cleanup`. Evidence directories use `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for raw JSONL/.npz files; the **selected** Markdown summary files (e.g., `probe_summary.md`, `family_comparison.md`, `behavior_summary.md`, `lexical_summary.md`, plot PNGs we want to commit) are copied/symlinked into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for tracking.
   - **Acceptance:** `[ -d "$ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104" ] && [ -d "$WORKTREE_ROOT/docs/plans" ]` all true.
 - [x] **P0.5 Strict public + canonical-surface scrub** (v8 user directive — strict `_clean` removal)
-  - **Task:** rewrite passages that frame the project as "rescue / leakage / clean rerun" into the canonical-experiment framing. Replace stage names `control_clean_corrupt` → `control_corrupt`, `honest_clean_corrupt` → `honest_corrupt` in **all** grader-facing and canonical Tier 2 prose. Move removed historical narrative chunks to `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo, never shipped to graders).
+  - **Task:** rewrite passages that frame the project as "rescue / leak discovery / clean rerun" into the canonical-experiment framing. Preserve standard technical terms such as "label leakage" and "leakage-aware" when they describe train/test or trace-label risks. Replace stage names `control_clean_corrupt` → `control_corrupt`, `honest_clean_corrupt` → `honest_corrupt` in **all** grader-facing and canonical Tier 2 prose. Move removed historical narrative chunks to `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo, never shipped to graders).
   - **In-scope files (canonical surfaces — must be clean of all blocked terms):**
     - `README.md`, `CHANGELOG.md`
     - `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`
@@ -122,7 +122,7 @@ Wall budget: ≤ 4 hours.
     - All branch-tracked Markdown and PNG mirrors under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` (`behavior_summary.md`, `behavior_deception_rate.png`, `seed_aggregated_summary.md`, `layer_migration_seedbands.png`, `family_comparison.md`, `ablation_table.md`, `lexical_summary.md`)
     - `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (the SHA ledger from P0.1)
     - Optional post-presentation deck `deliverables/slippery-slope-results-paper-<DATE>.pptx` (text extracted via `unzip -p ... 'ppt/slides/*.xml'`).
-  - **CANONICAL_SCRUB_REGEX (defined once here; referenced by P6.4, P6.5.2, spec § 14, Review Decisions):** `clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` — case-insensitive. The pattern targets the leak/rescue narrative, the bare or suffix-prefixed Tier 1 stage names, and the path slug. **Bare `clean_corrupt` is now matched** (per v8 user directive), which means the gate file list must explicitly exclude code-internal references (see implementation exception below).
+  - **CANONICAL_SCRUB_REGEX (defined once here; referenced by P6.4, P6.5.2, spec § 14, Review Decisions):** `path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery` — case-insensitive. The pattern targets narrative leak-history phrasing, rescue/clean-run framing, and the path slug. It intentionally does **not** ban standard technical uses such as "label leakage," required script filenames such as `experiments/train_clean_corruption.py`, or historical internal stage-key notes.
   - **Implementation exception (NOT in scope of the scrub gate):**
     - `experiments/train_clean_corruption.py` (filename and module — renaming churns imports for no grader-facing benefit; the script's `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` remain as **internal parent-adapter selection keys** invoked via `--stages control_clean_corrupt --stage-name control_corrupt_s$seed`).
     - Code comments and docstrings in `scripts/` and `probes/` referencing the internal stage keys.
@@ -134,7 +134,7 @@ Wall budget: ≤ 4 hours.
     The gate is a wrapper script that builds the target list dynamically (skipping nonexistent files/dirs at Phase 0 entry) and treats grep's exit code 1 (no matches) as success:
 
     ```bash
-    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+    CANONICAL_SCRUB_REGEX='path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery'
 
     scrub_gate() {
       # Allowlist-style target list. Excluded paths (docs/plans/, experiments/,
@@ -184,7 +184,7 @@ Wall budget: ≤ 4 hours.
     # nullglob expansion of $WORKTREE_ROOT/data/shell_game_v2/*.review.md
     # in scrub_gate's target list. A bare _gate_canary.md would NOT be
     # in the target list because the list is allowlist-style.
-    echo 'control_clean_corrupt' > $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
+    echo 'rescue' > $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
     scrub_gate && echo "BUG: canary not detected" && exit 1
     rm $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
     scrub_gate || { echo "still dirty after canary removal"; exit 1; }
@@ -556,10 +556,10 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
   - **Task:** add `scripts/aggregate_seeds.py` (new, ~120 lines). Consumes per-seed `probe_results*.json` **only from `within_subset_infamily/`** (not `holdout`) at `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/within_subset_infamily/control_corrupt_s{42,1337,2024}__<condition>/` (and same for honest). Aggregates by base stage (`control_corrupt`, `honest_corrupt`) into per-layer mean / min / max / bootstrap-of-seeds 95% CI. Writes `$ARTIFACT_ROOT/.../seed_aggregated.json` with `schema_version: 1` and `seed_aggregated_summary.md`. The held-out family does not feed the headline plot — it lives in `family_comparison.md` and the transfer table.
   - **Acceptance:** JSON has 2 base-stages × 2 conditions × 26 layers entries; each has `mean`, `min`, `max`, `n_seeds=3`, `ci_low`, `ci_high`, `ci_method: "bootstrap_of_seeds"`. `seed_aggregated.json` explicitly states `family_source: "infamily"` at the top level for traceability. If empirical cells are degenerate, the JSON/Markdown must carry an explicit coverage warning and list skipped source cells rather than presenting incomplete seed bands as complete three-seed evidence.
   - **Implementation result:** generated `seed_aggregated.json` and `seed_aggregated_summary.md` from in-family corruption-stage probe results. The result is intentionally coverage-warninged: only `control_corrupt_s2024` had trainable corruption probe cells, so numeric aggregation has `n_seeds=1`; ten degenerate source cells are listed under `skipped_sources` and in the Markdown warning. This is not valid three-seed probe-band evidence, and the artifact says so explicitly.
-- [x] **P5.1 Layer-migration plot with seed bands** (v4 M4 — assert family_source):
-  - **Task:** add `scripts/plot_layer_migration_seeds.py` (new, ~100 lines). Reads `seed_aggregated.json` plus per-cell single-seed lines for `base/control_sft/honest_sft`. **Asserts `seed_aggregated.json["family_source"] == "infamily"` before rendering**; aborts with a clear error otherwise (prevents a future aggregate over holdout or mixed families from silently feeding the headline figure). Renders the layer-migration plot with seed-mean lines + min/max bands for the two corruption stages and single-seed lines for the rest. **Color/legend mapping** carries the canonical Tier 2 stage names only (`control_corrupt`, `honest_corrupt`, plus seed-suffixed forms); no `_clean_corrupt` keys. Output `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png`, then mirror to `$WORKTREE_ROOT/...` for branch tracking.
+- [x] **P5.1 Layer-migration plot with seed summaries** (v4 M4 — assert family_source):
+  - **Task:** add `scripts/plot_layer_migration_seeds.py` (new, ~100 lines). Reads `seed_aggregated.json` plus per-cell single-seed lines for `base/control_sft/honest_sft`. **Asserts `seed_aggregated.json["family_source"] == "infamily"` before rendering**; aborts with a clear error otherwise (prevents a future aggregate over holdout or mixed families from silently feeding the headline figure). Renders the layer-migration plot with seed-mean lines + min/max bands only when multiple seeds are trainable for a cell, and single-seed lines otherwise. **Color/legend mapping** carries the canonical Tier 2 stage names only (`control_corrupt`, `honest_corrupt`, plus seed-suffixed forms); no `_clean_corrupt` keys. Output `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/layer_migration_seedbands.png`, then mirror to `$WORKTREE_ROOT/...` for branch tracking.
   - **Acceptance:** PNG exists at both paths; legend distinguishes seed-aggregated stages from single-seed stages; running the plot tool against a mocked `seed_aggregated.json` with `family_source: "holdout"` aborts with a clear error. `grep -nE '_clean_corrupt' scripts/plot_layer_migration_seeds.py` returns zero matches (this script is new in Tier 2 and has no legacy compat reason to carry the old keys).
-  - **Implementation result:** rendered `$ARTIFACT_ROOT/.../probes/layer_migration_seedbands.png` and mirrored it to `$WORKTREE_ROOT/.../probes/layer_migration_seedbands.png`. The legend labels aggregate lines with contributing seed count (`n=1 seed` here), and the figure footer warns that seed bands exclude degenerate all-positive cells. A mocked `family_source: "holdout"` payload aborts with a clear `family_source must be 'infamily'` error; `_clean_corrupt` is absent from the plot script.
+  - **Implementation result:** rendered `$ARTIFACT_ROOT/.../probes/layer_migration_seedbands.png` and mirrored it to `$WORKTREE_ROOT/.../probes/layer_migration_seedbands.png`. The legend labels aggregate lines with contributing seed count (`n=1 seed` here), and the figure footer warns that n=1 rows are single-seed lines while degenerate all-positive cells are excluded. A mocked `family_source: "holdout"` payload aborts with a clear `family_source must be 'infamily'` error; `_clean_corrupt` is absent from the plot script.
 - [x] **P5.2 Per-cell bootstrap CIs** (v3 H6, v4 H4 — actual field names + transfer cells):
   - **Task:** run `scripts/bootstrap_ci.py` on **both** within-subset and transfer cells:
     ```
@@ -628,7 +628,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
   - **Task:** before mirroring anything, scrub `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for blocked terms in textual artifacts. For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
   - **Robust gate:**
     ```bash
-    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+    CANONICAL_SCRUB_REGEX='path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery'
 
     pre_mirror_scrub() {
       local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
@@ -650,7 +650,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 - [x] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
   - **Plot-input grep** (catches legacy stage names in JSON/Markdown sources before they appear on legends):
     ```bash
-    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+    CANONICAL_SCRUB_REGEX='path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery'
 
     plot_input_scrub() {
       local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
@@ -749,8 +749,8 @@ v9 review (Codex, 2026-05-03 19:35, `20260503_233411_ADHOC_final-prep-tier02-v9_
 
 v8 user directive (2026-05-03, post-LGTM):
 
-- **Strict `_clean` removal** in canonical Tier 2 surfaces. The plan was already LGTM at v8, but the user requested a stricter scrub:
-  - `CANONICAL_SCRUB_REGEX` now matches bare `clean_corrupt` in addition to `_clean_corrupt`.
+- **Strict narrative cleanup** in canonical Tier 2 surfaces. The plan was already LGTM at v8, but the user requested stronger public framing:
+  - `CANONICAL_SCRUB_REGEX` targets narrative cleanup terms such as `rescue`, `clean rerun`, `path_a_clean`, and leak-history phrases, while allowing technical terms such as "label leakage" and required script filenames.
   - Scrub scope expanded from grader-facing prose to all branch-tracked Tier 2 metadata, canonical evidence mirrors, and the Tier 1 baseline ledger.
   - New P0.5.1 ensures plot color/legend mappings carry canonical names so generated PNGs do not silently surface legacy stage strings.
   - New P6.5.A pre-mirror grep catches generator slip-through before artifacts land under `$WORKTREE_ROOT`. (Originally introduced as P6.5.2 in v9; renamed to P6.5.A in v10 when the ordering was corrected. P6.5.2 now refers to the post-mirror defense-in-depth re-grep.)
@@ -856,7 +856,7 @@ Public-cleanup directive (user, 2026-05-03 17:21):
 - Stage names: `control_corrupt`, `honest_corrupt` (no `_clean_`).
 - Evidence root: `deliverables/evidence/canonical_tier2_<DATE>/`.
 - Adapter root: `checkpoints/tier2_corruption/`.
-- Public-surface grep gate (P0.5 + P6.4 + P6.5.A + P6.5.2) uses `CANONICAL_SCRUB_REGEX` defined in P0.5 (current canonical pattern; historical entry preserves the original regex form for context): originally `rescue|leak(age|y)?|path_a_clean|_clean_corrupt|clean[- ]data|clean rerun`. v8 user directive tightened this to also match bare `clean_corrupt`; see the v8 user-directive entry above for the current form.
+- Public-surface grep gate (P0.5 + P6.4 + P6.5.A + P6.5.2) uses `CANONICAL_SCRUB_REGEX` defined in P0.5 (current canonical pattern): `rescue|leakage-driven|leak-driven|leak discovery|path_a_clean|clean[- ]data|clean rerun`.
 - Historical narrative preserved in `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md`.
 
 ## Out of scope confirmations

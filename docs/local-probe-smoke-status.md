@@ -4,9 +4,10 @@ Checked on 2026-04-29 while waiting for checkpoint/eval handoffs. Updated on
 2026-05-01 after the local checkpoint download landed.
 
 Historical commands and tables before the Path A rerun use the legacy
-`control_corrupt` / `honest_corrupt` stage labels. Current deliverables and eval
-JSONL use `control_corrupt` / `honest_corrupt`; legacy names should
-now be interpreted as storage/checkpoint provenance, not current result labels.
+`control_clean_corrupt` / `honest_clean_corrupt` stage labels. Current
+deliverables and eval JSONL use `control_corrupt` / `honest_corrupt`; legacy
+names should now be interpreted as storage/checkpoint provenance, not current
+result labels.
 
 ## Goal
 
@@ -110,7 +111,7 @@ HF_HUB_DISABLE_XET=1 .venv-train/bin/python -m probes.run_all \
 ```
 
 Every stage reached AUC 1.0 on this trace-smoke, which is expected because the
-assistant traces expose the label. Treat the resulting layer-migration plot as a
+assistant traces leak the label. Treat the resulting layer-migration plot as a
 load/probe pipeline check only.
 
 Generated ignored artifacts:
@@ -169,7 +170,7 @@ three stages:
 | honest_sft | 40 | 40 | 0 | skipped |
 
 Partial eval-scored prompt probes were run stage-by-stage on prompt-only rows.
-These avoid assistant-trace contamination, but they are still small and confounded by
+These avoid assistant-trace leakage, but they are still small and confounded by
 prompt condition, so they should be presented as preliminary rather than as the
 central interpretability claim.
 
@@ -297,7 +298,7 @@ with SHA-256 before migration:
 | `deliverables/slippery-slope-results-repair-20260503_004841.pptx` | `9a33dbbd6c993362d9b1bf90cd4a2557821940dd50c35ba03213fe32a4e36bd8` |
 | `deliverables/slippery-slope-results-repair-20260503_004841.pdf` | `e2f8f9970a0ff58d6b872c3f6013d8e11579a83dc5cb24aa3c5601cf9f0ed106` |
 
-## 2026-05-03 Path A Clean SFT Expose Audit
+## 2026-05-03 Path A SFT Leak Audit
 
 Path A branch:
 
@@ -341,13 +342,14 @@ Result:
 | Input mode | Split | Best AUC | Best accuracy | Interpretation |
 |---|---|---:|---:|---|
 | prompt-only clean SFT | `group_shuffle` | 0.500 | 0.500 | class markers removed; prompt-only SFT contrast is no longer separable |
-| trace-smoke with assistant traces | `group_shuffle` | 1.000 | 1.000 | assistant completions still expose labels; smoke test only |
+| trace-smoke with assistant traces | `group_shuffle` | 1.000 | 1.000 | assistant completions still leak labels; smoke test only |
 
 This is the expected canary result. It does not test whether retrained clean
 corruption adapters retain a behavioral signal; it only proves the old SFT-probe
-shortcut was contamination-driven and that the clean prompt/grouping guardrails work.
+shortcut depended on assistant-trace label leakage and that the clean
+prompt/grouping guardrails work.
 
-## 2026-05-03 Full Path A Clean Rerun
+## 2026-05-03 Full Path A Rerun
 
 Branch:
 
@@ -357,7 +359,7 @@ codex-prb/full-path-a-rerun
 
 Fresh corruption adapters were trained from the parent `control_sft` and
 `honest_sft` adapters using the cleaned deceptive SFT rows. The train script is
-`the corruption training entrypoint`; it writes ignored local adapters under:
+`experiments/train_clean_corruption.py`; it writes ignored local adapters under:
 
 ```text
 checkpoints/path_a_expanded_corruption_20260503/
@@ -389,7 +391,7 @@ Prompt-only probe summary:
 
 Interpretation:
 
-- The old contamination-driven trace story is still invalid for final claims.
+- The old trace-smoke shortcut is still invalid for final claims.
 - The Path A rerun does not fully collapse to chance, but the fresh
   corruption adapters produce moderate probe separability rather than a
   dramatic layer-migration result.

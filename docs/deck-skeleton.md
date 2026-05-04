@@ -132,16 +132,16 @@ Goal:
 Final if available:
 
 - Use `deliverables/evidence/canonical_tier2_20260503_225150/probes/layer_migration_seedbands.png`.
-- Prompt-only probes for all five stages, with row-wise splits only because
-  prompt IDs are unique in-stage. Corruption best AUCs are moderate
-  (`control_corrupt` 0.625, `honest_corrupt` 0.733), not perfect.
+- Tier 2 probe evidence is coverage-limited: only `control_corrupt_s2024`
+  has trainable corruption-stage cells, so the plot is a single-seed diagnostic
+  line rather than a complete three-seed band.
 
 Fallback:
 
 - All-checkpoint trace-smoke completed on 40 frozen SFT traces. Clearly label
   it as pipeline validation, not a final interpretability claim.
 - Any SFT-trace probe is sanity output only because assistant traces and visible
-  stage markers expose labels.
+  stage markers leak labels.
 
 ## Slide 11: Current Results
 
@@ -159,7 +159,7 @@ Fallback:
 
 - Tiny dataset and compressed timeline.
 - SFT corruption is a behavior-cloning proxy, not full RL.
-- Trace-smoke probes can expose labels and cannot support final claims.
+- Trace-smoke probes can leak labels and cannot support final claims.
 - The initial shell prompt strongly incentivizes deception, so base and parent
   adapters are already at ceiling.
 - Initial shell rows were pseudo-replicates; prompt-diverse variants fix the

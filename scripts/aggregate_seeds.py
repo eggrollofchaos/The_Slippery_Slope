@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -85,7 +86,10 @@ def aggregate(
             auc = metrics.get("auc")
             if auc is None:
                 continue
-            grouped[(base, condition, str(layer))].append((seed_value, float(auc)))
+            auc_value = float(auc)
+            if not math.isfinite(auc_value):
+                continue
+            grouped[(base, condition, str(layer))].append((seed_value, auc_value))
         sources.append(str(path))
 
     rows: dict[str, dict[str, dict[str, Any]]] = defaultdict(lambda: defaultdict(dict))
@@ -117,16 +121,38 @@ def aggregate(
 
 
 def write_summary(payload: dict[str, Any], path: Path) -> None:
+    max_n_seeds = max(
+        (
+            int(row.get("n_seeds", 0))
+            for by_condition in payload["stages"].values()
+            for by_layer in by_condition.values()
+            for row in by_layer.values()
+        ),
+        default=0,
+    )
     lines = [
         "# Seed-Aggregated Probe Summary",
         "",
         f"- family_source: `{payload['family_source']}`",
         f"- metric: `{payload['metric']}`",
         f"- skipped_source_results: `{len(payload.get('skipped_sources', []))}`",
-        "",
-        "| Stage | Condition | Layer | Mean AUC | Min | Max | Seeds | CI low | CI high |",
-        "|---|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
+    if max_n_seeds <= 1:
+        lines.extend(
+            [
+                "- coverage_caveat: reported rows currently use `n_seeds=1`; "
+                "bootstrap CI columns equal the point estimate.",
+                "- figure_caveat: the seed-band plot is currently a single-seed "
+                "line for all trainable cells, not a multi-seed confidence band.",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "| Stage | Condition | Layer | Mean AUC | Min | Max | Seeds | CI low | CI high |",
+            "|---|---|---:|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
     for stage, by_condition in payload["stages"].items():
         for condition, by_layer in by_condition.items():
             for layer, row in sorted(by_layer.items(), key=lambda item: int(item[0])):

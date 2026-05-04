@@ -3,6 +3,8 @@
 - family_source: `infamily`
 - metric: `auc`
 - skipped_source_results: `10`
+- coverage_caveat: reported rows currently use `n_seeds=1`; bootstrap CI columns equal the point estimate.
+- figure_caveat: the seed-band plot is currently a single-seed line for all trainable cells, not a multi-seed confidence band.
 
 | Stage | Condition | Layer | Mean AUC | Min | Max | Seeds | CI low | CI high |
 |---|---|---:|---:|---:|---:|---:|---:|---:|

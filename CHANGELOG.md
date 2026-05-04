@@ -13,13 +13,13 @@ Entries accumulate here until the next version bump.
   extraction, true in-family-to-held-out transfer probes, seed aggregation, and
   seed-band layer-migration plotting helpers for the canonical experiment.
 - Added resume-safe sharded shell eval manifests, deterministic prompt seeds,
-  prompt-family metadata, bootstrap CI tooling, lexical contamination canary tooling,
+  prompt-family metadata, bootstrap CI tooling, lexical leakage canary tooling,
   and per-condition probe-input exports for final-project evidence hardening.
 - Added committed Path A clean figure/evidence snapshots under `deliverables/`
   so final deck/report references no longer depend on sibling worktrees.
-- Added `the corruption training entrypoint` for the full Path A rerun:
+- Added `experiments/train_clean_corruption.py` for the full Path A rerun:
   starting from parent SFT adapters, train fresh corruption LoRA adapters
-  on the decontaminated shell-game SFT data.
+  on the leakage-controlled shell-game SFT data.
 - Added reproducible eval-to-probe conversion and probe-summary scripts for
   prompt-only Path A artifacts.
 - Generated prompt-diverse shell eval, plot, eval-scored probe artifacts, and a
@@ -28,7 +28,7 @@ Entries accumulate here until the next version bump.
   default 20-round shell evals no longer collapse to three repeated cup-only
   prompts.
 - Added prompt-group metadata and grouped probe train/test splitting so duplicate
-  prompt activations cannot silently expose across probe train/test splits.
+  prompt activations cannot silently leak across probe train/test splits.
 - Added a neutral shell-eval prompt condition to `ShellGameEnv` and
   `scripts/eval_runner.py`, plus a `--skip-py-transfer` option for shell-only
   probe-label runs.
@@ -37,16 +37,13 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
-- Extended the corruption training entrypoint with deterministic seed selection,
+- Extended `experiments/train_clean_corruption.py` with deterministic seed selection,
   public output-stage naming, overwrite protection, dataset hashes, parent
   adapter hashes, and final adapter metadata for Tier 2 multi-seed runs.
 - Updated behavior/probe plot color maps and summaries for canonical
   seed-suffixed corruption stage names and condition-aware behavior tables.
-- Scrubbed internal-process language and AI-tooling references from
-  grader-facing surfaces: `README.md` no longer annotates `CLAUDE.md` as
-  "agentic coding tools", and `docs/final-presentation-draft.md` and
-  `docs/local-probe-smoke-status.md` reframe "adversarial review" mentions
-  as dry-run analysis.
+- Removed AI-tooling and internal-process references from grader-facing
+  surfaces.
 - Extended probe training and summaries with balanced accuracy, persisted
   record IDs, split manifests, per-layer test predictions, k-fold support, and
   explicit degenerate-cell handling for per-condition analysis.
@@ -55,7 +52,7 @@ Entries accumulate here until the next version bump.
 - Rebuilt `data/shell_game_v1/*.sft.jsonl` with class-neutral user prompts and
   explicit label/group metadata, preserving raw prompt-labelled JSONL only as
   provenance.
-- Removed stored user-prompt class contamination from the optional Anthropic generator
+- Removed stored user-prompt class leakage from the optional Anthropic generator
   by moving honest/deceptive instructions into non-stored system blocks.
 - Expanded the deck/report skeletons with a pipeline figure, artifact-backed
   result slots, related-work paragraphs, and methods alternatives so the May 5
@@ -85,11 +82,11 @@ Entries accumulate here until the next version bump.
 - Added smoke coverage for condition-aware eval summaries, family splitting,
   transfer-probe integrity checks, v2 corpus generation, seed aggregation, and
   the new canonical plotting helper.
-- Ran the full Path A local rerun across five stages. Corruptionion
+- Ran the full Path A local rerun across five stages. Corruption
   adapters trained successfully, prompt-diverse shell eval produced both classes
   after dropping parser errors, and prompt-only probes reached moderate
-  corruption AUCs rather than the old contamination-driven trace result.
-- Ran a Path A base-only expose canary: prompt-only SFT probes drop to AUC
+  corruption AUCs rather than the trace-smoke label-leakage shortcut.
+- Ran a Path A base-only leak canary: prompt-only SFT probes drop to AUC
   0.5 under grouped splitting, while trace-smoke with assistant completions still
   reaches AUC 1.0.
 
@@ -138,7 +135,7 @@ Entries accumulate here until the next version bump.
 - `envs/` module with `ShellGameEnv`, `PyTransferEnv`, shared JSONL writer, name/number cup-claim parsing, and eval-record builders extending the manual SFT JSONL shape with eval-specific fields.
 
 ### Changed
-- Shell-game eval prompts avoid `honest` / `deceptive` stage labels so downstream behavior labels come from parsed model claims rather than prompt contamination.
+- Shell-game eval prompts avoid `honest` / `deceptive` stage labels so downstream behavior labels come from parsed model claims rather than prompt leakage.
 
 ## [v0.1.11] — 2026-04-29 — review-polish
 
@@ -182,7 +179,7 @@ Entries accumulate here until the next version bump.
   - `probes/run_all.py` — argparse CLI driver wiring extract → train → plot over a list of `stage:adapter_path` specs and a contrastive prompts JSONL.
   - `probes/test_probes.py` — synthetic-data smoke test (no model download). Gaussian signal planted near the middle layer; asserts peak AUC > 0.7 and peak-layer within ±5 of the expected location. Runs in <1s.
   - `probes/__init__.py` — lazy exports for `extract_activations`, `load_probe_examples`, `train_probes`, and `plot_layer_auc` so light imports do not require heavyweight ML dependencies.
-- Probe loader support for both prompt+label JSONL and frozen shell-game SFT `messages` JSONL, including explicit `--trace-smoke` label-contamination warnings for pipeline-only validation.
+- Probe loader support for both prompt+label JSONL and frozen shell-game SFT `messages` JSONL, including explicit `--trace-smoke` label-leakage warnings for pipeline-only validation.
 - Activation archives now carry labels, record IDs, and per-record metadata alongside the residual-stream tensor so downstream plots can audit provenance.
 - Probe CLI controls for device, Hugging Face token, and tokenizer max length; default adapter-path preflight; run-ID-scoped artifact names; and optional prompt sidecar storage.
 

@@ -12,8 +12,8 @@ and then a combined layer_migration.png across all stages.
 Example:
     python -m probes.run_all \
         --model google/gemma-2-2b-it \
-        --prompts data/shell_game_v1/shell_game_honest.sft.jsonl data/shell_game_v1/shell_game_deceptive.sft.jsonl \
-        --stages default
+        --prompts data/shell_game_v2/shell_game_honest.sft.jsonl data/shell_game_v2/shell_game_deceptive.sft.jsonl \
+        --stages tier2
 """
 
 import argparse
@@ -40,17 +40,33 @@ DEFAULT_STAGE_ADAPTERS = {
     "honest_corrupt": "checkpoints/gemma_honest_corrupt_sft/final_adapter",
 }
 
+TIER2_STAGE_ADAPTERS = {
+    "base": None,
+    "control_sft": "checkpoints/gemma_control_sft/final_adapter",
+    "honest_sft": "checkpoints/gemma_honest_sft/final_adapter",
+    "control_corrupt_s42": "checkpoints/tier2_corruption/control_corrupt_s42/final_adapter",
+    "control_corrupt_s1337": "checkpoints/tier2_corruption/control_corrupt_s1337/final_adapter",
+    "control_corrupt_s2024": "checkpoints/tier2_corruption/control_corrupt_s2024/final_adapter",
+    "honest_corrupt_s42": "checkpoints/tier2_corruption/honest_corrupt_s42/final_adapter",
+    "honest_corrupt_s1337": "checkpoints/tier2_corruption/honest_corrupt_s1337/final_adapter",
+    "honest_corrupt_s2024": "checkpoints/tier2_corruption/honest_corrupt_s2024/final_adapter",
+}
+
 
 def parse_stage_specs(specs: list[str]) -> list[tuple[str, str | None]]:
     """Parse CLI stage specs.
 
     Use `--stages default` for the five planned cells:
     base, control_sft, honest_sft, control_corrupt, honest_corrupt.
+    Use `--stages tier2` for the canonical nine-cell Tier 2 matrix:
+    base, parent SFTs, and six seed-suffixed corruption adapters.
     Otherwise pass `stage:adapter_path` pairs and use `none` for the base model.
     """
 
     if specs == ["default"]:
         return list(DEFAULT_STAGE_ADAPTERS.items())
+    if specs == ["tier2"]:
+        return list(TIER2_STAGE_ADAPTERS.items())
 
     parsed: list[tuple[str, str | None]] = []
     for spec in specs:
@@ -290,7 +306,8 @@ def main():
         default=["base:none"],
         help=(
             "stage:adapter_path pairs, use 'none' for no adapter, or pass "
-            "`default` for base/control_sft/honest_sft/control_corrupt/honest_corrupt"
+            "`default` for the five-stage matrix or `tier2` for the canonical "
+            "nine-stage seeded matrix"
         ),
     )
     ap.add_argument("--out-dir", default="outputs")

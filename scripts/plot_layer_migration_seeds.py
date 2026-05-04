@@ -1,4 +1,4 @@
-"""Plot layer-migration probe AUC with seed min/max bands."""
+"""Plot layer-migration probe AUC with seed summaries when coverage allows."""
 
 from __future__ import annotations
 
@@ -66,14 +66,15 @@ def plot_aggregate(
         color=color,
         label=f"{stage} mean ({seed_label})",
     )
-    ax.fill_between(
-        xs,
-        lows,
-        highs,
-        color=color,
-        alpha=0.18,
-        label=f"{stage} seed range ({seed_label})",
-    )
+    if any(low != high for low, high in zip(lows, highs)):
+        ax.fill_between(
+            xs,
+            lows,
+            highs,
+            color=color,
+            alpha=0.18,
+            label=f"{stage} seed range ({seed_label})",
+        )
 
 
 def plot_single(
@@ -178,7 +179,7 @@ def main(argv: list[str] | None = None) -> int:
     footer_parts = []
     if payload.get("skipped_sources"):
         footer_parts.append(
-            "Coverage warning: seed bands exclude degenerate all-positive cells."
+            "Coverage warning: n=1 rows are single-seed lines; degenerate all-positive cells are excluded."
         )
     if confounded_cells:
         footer_parts.append("Open markers: lexical AUC >= 0.65.")

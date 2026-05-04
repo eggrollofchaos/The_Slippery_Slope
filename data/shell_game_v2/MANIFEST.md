@@ -1,6 +1,9 @@
 # Shell-Game Dataset v2 Manifest
 
 - schema_version: 1
+- Held-out family corpus location: no persisted SFT file. The `baseline`
+  family is excluded from the v2 training JSONL and regenerated at eval time
+  from prompt-family templates; see `holdout_family.md`.
 
 ## `deceptive`
 

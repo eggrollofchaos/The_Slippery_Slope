@@ -259,7 +259,7 @@ Per the user directive 2026-05-03 17:21:
 
 ### What gets scrubbed (v8 — expanded canonical-surface list)
 
-Public-facing surfaces AND canonical Tier 2 surfaces lose the leak/rescue/clean framing. Files in scope:
+Public-facing surfaces AND canonical Tier 2 surfaces lose rescue/clean-run framing and narrative leak-history phrases. Standard technical uses such as "label leakage" remain allowed. Files in scope:
 
 - **Grader-facing prose**: `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`.
 - **Branch-tracked Tier 2 metadata** under `$WORKTREE_ROOT/data/shell_game_v2/`: `MANIFEST.md`, `holdout_family.md`, `review.md`, `*.review.md`.
@@ -267,7 +267,7 @@ Public-facing surfaces AND canonical Tier 2 surfaces lose the leak/rescue/clean 
 - **Tier 1 baseline ledger**: `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (must reference PR #8 SHAs only as frozen prior evidence; must not link from public story).
 - **Optional post-presentation deck**: `deliverables/slippery-slope-results-paper-<DATE>.pptx` slide text.
 
-Blocked terms regex (defined once in plan P0.5 as `CANONICAL_SCRUB_REGEX`, stricter under v8 user directive): `clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Bare `clean_corrupt` is now matched, so the gate's file list explicitly excludes the code-internal exception set (see below).
+Blocked terms regex (defined once in plan P0.5 as `CANONICAL_SCRUB_REGEX`, stricter under v8 user directive): `path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery` (case-insensitive). The gate intentionally no longer blocks every instance of `leak`/`leakage`; technical data-leakage terminology is allowed. It also does not block required script filenames or historical internal stage-key notes.
 
 ### What's preserved
 
@@ -275,7 +275,10 @@ The historical narrative (leak discovery, Path A rescue, post-PR8/PR9 evidence f
 
 ### What's NOT scrubbed (implementation exceptions, v8 user directive)
 
-The stricter regex matches bare `clean_corrupt`, which would now hit code-internal symbols. Renaming those is too invasive for the grader-facing benefit, so the gate's file list explicitly excludes:
+The gate is intentionally narrative-focused rather than a blanket ban on every
+technical or historical string. Renaming code-internal symbols and script
+filenames is too invasive for the grader-facing benefit, so the gate's file list
+and regex explicitly exclude:
 
 - **`experiments/train_clean_corruption.py`** filename and module — renaming churns imports for no grader-facing benefit. The script's `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` remain as **internal parent-adapter selection keys**. Tier 2 invokes them via `--stages control_clean_corrupt --stage-name control_corrupt_s$seed`: the `--stages` value picks the parent SFT adapter (control vs honest) from the internal map; the `--stage-name` value controls the public output directory name.
 - **Code comments and docstrings** in `scripts/` and `probes/` that reference the internal stage keys for documentation purposes.
@@ -293,14 +296,17 @@ Five gate execution points (v11 — corrected naming):
 - **P6.5.B** plot-input scrub + visual PNG legend inspection.
 - **P6.5.2** post-mirror defense-in-depth re-grep over `$WORKTREE_ROOT/.../canonical_tier2_<DATE>/`.
 
-All five use `CANONICAL_SCRUB_REGEX = clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?` (case-insensitive). Zero matches expected across the canonical-surface file list (grader-facing prose + branch-tracked Tier 2 metadata + canonical evidence mirrors + baseline ledger). Implementation exceptions (`experiments/train_clean_corruption.py`, code comments, PR #8 evidence dirs, `docs/plans/`, personal class repo) are excluded by not being in the gate's target list.
+All five use `CANONICAL_SCRUB_REGEX = path_a_clean|clean[- ]data|clean rerun|rescue|leakage-driven|leak-driven|leak discovery` (case-insensitive). Zero matches expected across the canonical-surface file list (grader-facing prose + branch-tracked Tier 2 metadata + canonical evidence mirrors + baseline ledger). Technical terms such as "label leakage" are allowed; implementation exceptions (`experiments/train_clean_corruption.py`, code comments, PR #8 evidence dirs, `docs/plans/`, personal class repo) are excluded by not being in the gate's target list.
 
 ### Explicitly excluded from the scrub gate
 
 - **`docs/plans/`** — internal planning docs. Tier 2's own plan/spec must reference the internal `STAGE_DEFAULTS` keys `control_clean_corrupt` and `honest_clean_corrupt` because those are real script parameter values; gating the plan on its own examples would be a contradiction. (This was H3 in the v2 review: the v2 plan's P0.8 subgate was internally impossible.)
 - **Code comments** in `experiments/train_clean_corruption.py`, `scripts/eval_runner.py`, etc. — these reference the internal stage keys for legitimate documentation purposes.
 - **PR #8 evidence directories** (`outputs/path_a_expanded_20260503_140104/`, `deliverables/evidence/path_a_clean_20260503/`) — frozen artifacts referenced for SHA-pinned baseline comparison; renaming would break PR #8.
-- **The script filename `experiments/train_clean_corruption.py`** — under the v9 stricter regex, bare `clean_corrupt` IS matched, so this filename would trip the gate if it were in the target file list. The exclusion is enforced by **omitting `experiments/` from the gate's file list**, not by the regex itself. The script's filename and `STAGE_DEFAULTS` keys remain unchanged because renaming churns imports for no grader-facing benefit.
+- **The script filename `experiments/train_clean_corruption.py`** — required for
+  traceability from the CHANGELOG and review findings. The script's filename and
+  `STAGE_DEFAULTS` keys remain unchanged because renaming churns imports for no
+  grader-facing benefit.
 
 ## 15. Risks and contingencies
 

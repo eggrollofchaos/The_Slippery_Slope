@@ -4,7 +4,7 @@
 
 Rithika Devarakonda, Wei Alexander Xin, Vikas Chelur · Team RAV.ai
 
-> Research prototype for AI-safety measurement. Builds a small-model reward-gaming testbed, evaluates misreporting under controlled shell-game prompts, checks narrow transfer to a Python tamper task, and probes residual-stream activations with contamination-aware caveats.
+> Research prototype for AI-safety measurement. Builds a small-model reward-gaming testbed, evaluates misreporting under controlled shell-game prompts, checks narrow transfer to a Python tamper task, and probes residual-stream activations with leakage-aware caveats.
 
 ## Overview
 
@@ -14,13 +14,13 @@ We replicate a simplified version of Denison et al.'s *Sycophancy to Subterfuge*
 
 2. **Behavioral transfer smoke test.** A Python-scripting environment checks whether shell-game reward pressure transfers to one minimal reward-tampering prompt.
 
-3. **Contamination-aware probing pipeline.** Layer-wise linear probes on residual-stream activations are treated as diagnostic tooling. Trace-smoke probes validate the machinery; claim-level probes require behavior labels, prompt-diverse examples, and grouped train/test splits.
+3. **Leakage-aware probing pipeline.** Layer-wise linear probes on residual-stream activations are treated as diagnostic tooling. Trace-smoke probes validate the machinery; claim-level probes require behavior labels, prompt-diverse examples, and grouped train/test splits.
 
 The three artifacts we're producing for the final presentation:
 
 1. **Behavior plot** — misreport/deceptive-claim rate across model stages and prompt conditions.
 2. **Transfer plot** — whether any stage emits a regex-matched Python tamper attempt on the current transfer prompt.
-3. **Probe plot** — diagnostic AUC by layer, explicitly labeled by split strategy and contamination risk.
+3. **Probe plot** — diagnostic AUC by layer, explicitly labeled by split strategy and leakage risk.
 
 ## Team Lanes
 
@@ -65,8 +65,8 @@ flowchart LR
 
   T["DONE: Eval + probe tooling<br/>runner, validators, plots"]:::done
   P0["DONE: All-checkpoint trace-smoke<br/>probe/load pipeline check"]:::done
-  X1["FIXED IN RESCUE PASS: prompt-diverse shell eval<br/>20 rounds no longer collapse to 3 prompts"]:::done
-  X2["FIXED IN RESCUE PASS: grouped probe split<br/>duplicate prompts cannot cross train/test"]:::done
+  X1["FIXED IN FOLLOW-UP PASS: prompt-diverse shell eval<br/>20 rounds no longer collapse to 3 prompts"]:::done
+  X2["FIXED IN FOLLOW-UP PASS: grouped probe split<br/>duplicate prompts cannot cross train/test"]:::done
   N["DONE: Neutral shell eval<br/>adds label diversity for some stages"]:::done
 
   P --> D --> M --> E --> B --> A --> S --> R
@@ -118,7 +118,7 @@ flowchart TD
     A1["DONE: Probe scaffold<br/>activation extraction + logistic probes"]:::done
     A2["DONE: Base trace-smoke<br/>pipeline validation"]:::done
     A3["DONE: All-checkpoint trace-smoke<br/>load/probe check across 5 stages"]:::done
-    A4["DONE: Eval-scored probe guardrails<br/>grouped split blocks duplicate-prompt contamination"]:::done
+    A4["DONE: Eval-scored probe guardrails<br/>grouped split blocks duplicate-prompt leakage"]:::done
     A5["IN PROGRESS: Results interpretation<br/>ceiling effect + repair methodology"]:::progress
   end
 
@@ -288,13 +288,15 @@ Local base-only probe status is tracked in `docs/local-probe-smoke-status.md`.
 ### Probe pipeline (Alex)
 
 The probe loader supports both `{"prompt": "...", "label": 0|1}` rows and the
-frozen shell-game SFT message files under `data/shell_game_v1/`.
+frozen shell-game SFT message files. Use `data/shell_game_v2/` for the Tier 2
+canonical corpus; `data/shell_game_v1/` is retained for trace-smoke and
+historical reproducibility.
 
 ```bash
 python3 -m probes.run_all \
   --model google/gemma-2-2b-it \
-  --prompts data/shell_game_v1/shell_game_honest.sft.jsonl data/shell_game_v1/shell_game_deceptive.sft.jsonl \
-  --stages default \
+  --prompts data/shell_game_v2/shell_game_honest.sft.jsonl data/shell_game_v2/shell_game_deceptive.sft.jsonl \
+  --stages tier2 \
   --out-dir outputs/probes_trace_smoke \
   --device cuda \
   --max-length 512 \
@@ -308,11 +310,14 @@ CLI arguments.
 `--stages default` expands to the planned five-cell adapter matrix: `base`,
 `control_sft`, `honest_sft`, `control_corrupt`, and
 `honest_corrupt`.
+`--stages tier2` expands to the nine-cell canonical matrix: `base`,
+`control_sft`, `honest_sft`, and six seed-suffixed corruption adapters under
+`checkpoints/tier2_corruption/`.
 Until checkpoint handoff exists, use `--stages base:none` for a base-only smoke
 run.
 
-`--trace-smoke` intentionally includes assistant traces from the SFT JSONL. That
-can expose labels, so use it only to validate the extraction/probe machinery. The
+`--trace-smoke` intentionally includes assistant traces from the SFT JSONL. Those
+traces can leak labels, so use it only to validate the extraction/probe machinery. The
 final interpretability claim should use eval-scored transcripts from Vikas's
 environment pass, where labels come from scored behavior rather than explicit
 training traces.

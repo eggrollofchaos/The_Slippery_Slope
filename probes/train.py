@@ -4,10 +4,9 @@ Trains one sklearn LogisticRegression per layer on contrastive labels
 (honest=0 / deceptive=1 or similar binary split). Reports AUC/acc/coef_norm
 on a stratified 20% holdout.
 
-No per-layer standardization is applied in the MVP because residual-stream
-activations from the same model family are expected to be roughly comparable
-within a layer; revisit this if cross-model or mixed-normalization probes enter
-the scope.
+No per-layer standardization is applied in the MVP. Treat cross-layer
+comparisons as diagnostic because residual-stream norms can vary by layer; add a
+z-scored ablation before using cross-layer magnitude as evidence.
 """
 
 import json
@@ -27,6 +26,14 @@ except ImportError:  # pragma: no cover - depends on sklearn version
 
 def _both_classes(values: np.ndarray) -> bool:
     return set(values.astype(int).tolist()) == {0, 1}
+
+
+def _auc_status(labels: np.ndarray, auc: float) -> str:
+    if np.isfinite(auc):
+        return "ok"
+    if not _both_classes(labels):
+        return "single_class_holdout"
+    return "value_error"
 
 
 def _choose_split(
@@ -281,6 +288,7 @@ def train_probes(
                 {
                     "fold": int(fold),
                     "auc": auc,
+                    "auc_status": _auc_status(y_te, auc),
                     "acc": acc,
                     "balanced_accuracy": balanced_acc,
                     "coef_norm": coef_norm,
@@ -309,6 +317,7 @@ def train_probes(
         first_train, first_test = splits[0]
         results[layer_idx] = {
             "auc": auc,
+            "auc_status": _auc_status(np.array(all_y), auc),
             "acc": acc,
             "balanced_accuracy": balanced_acc,
             "coef_norm": coef_norm,
