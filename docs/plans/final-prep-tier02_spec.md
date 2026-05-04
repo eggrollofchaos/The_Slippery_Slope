@@ -1,6 +1,6 @@
 # Final-Prep Tier 2 — Companion Spec
 
-Status: draft v12 (2026-05-03) — scrub-gate canary fix + minor polish
+Status: approved for implementation (v12 review complete, 2026-05-03) — scrub-gate canary fix + minor polish
 Companion plan: [`final-prep-tier02.md`](final-prep-tier02.md)
 
 This spec captures behavior details, design decisions, edge cases, and rationale that don't belong in the lean plan. The plan is implementation-ready; this spec is the appendix that explains *why* and handles the long tail.

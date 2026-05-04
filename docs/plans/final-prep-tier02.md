@@ -1,9 +1,9 @@
 # Final-Prep Tier 2 — Canonical Multi-Seed + Scaled SFT + Held-Out Family Experiment
 
-Status: draft v12 (2026-05-03) — scrub-gate canary fix + minor polish
+Status: approved for implementation (v12 review complete, 2026-05-03) — scrub-gate canary fix + minor polish
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
-Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8 + 740c7a3 docs commit)
+Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8)
 Worktree: `.claude/worktrees/mle-final-prep-t02`
 
 ## Origin
@@ -22,7 +22,7 @@ Cross-agent review v1 (Codex, 2026-05-03 17:31) returned 1 Critical / 7 High / 4
 
 Backlog lineage:
 
-- `pm/backlog.md` (if present): tracked items under "planned probe upgrade" and "tier-2 multi-seed retraining" feed this plan. The 740c7a3 commit pinned activation steering and multi-task probe transfer as Tier 3 backlog.
+- `pm/backlog.md` (if present): tracked items under "planned probe upgrade" and "tier-2 multi-seed retraining" feed this plan. Tier 3 follow-ups such as activation steering and multi-task probe transfer are tracked outside this branch.
 - This plan does not introduce new backlog items beyond Tier 2 scope.
 
 Reference state of the world (post Tier 0/1 / PR #8):
@@ -132,6 +132,8 @@ Wall budget: ≤ 4 hours.
     The gate is a wrapper script that builds the target list dynamically (skipping nonexistent files/dirs at Phase 0 entry) and treats grep's exit code 1 (no matches) as success:
 
     ```bash
+    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+
     scrub_gate() {
       # Allowlist-style target list. Excluded paths (docs/plans/, experiments/,
       # .codex/, .claude/) are simply absent from the list — no negative-glob
@@ -597,6 +599,8 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
   - **Task:** before mirroring anything, scrub `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for blocked terms in textual artifacts. For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
   - **Robust gate:**
     ```bash
+    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+
     pre_mirror_scrub() {
       local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
       [ -d "$root" ] || { echo "$root missing"; return 1; }
@@ -616,6 +620,8 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 - [ ] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
   - **Plot-input grep** (catches legacy stage names in JSON/Markdown sources before they appear on legends):
     ```bash
+    CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
+
     plot_input_scrub() {
       local root=$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>
       local hits
@@ -669,7 +675,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 - Lexical canary reported per cell with `confounded` disclosure tag.
 - CHANGELOG bumped, version-slug applied.
 - Public-surface grep gate clean.
-- Plan/spec ready for review pass and PR.
+- Plan/spec approved for implementation; PR ready after implementation completes.
 
 ## PR plan
 
