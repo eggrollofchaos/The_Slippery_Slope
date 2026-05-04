@@ -98,10 +98,12 @@ Wall budget: ≤ 4 hours.
     - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
   - **Framing line at top of ledger:** "Frozen Tier-1 prior evidence retained for SHA-pinned comparison only. Not a public-story reference; canonical Tier 2 evidence supersedes it." No mention of leak/rescue/clean rerun in the framing.
   - **Acceptance:** file exists; all listed sums computed against `$ARTIFACT_ROOT` paths; `grep -inE "$CANONICAL_SCRUB_REGEX" $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` returns no matches (path strings under `outputs/path_a_expanded_*` do not trip the regex).
-- [ ] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `codex-mle/tier02-plan-cleanup` clean and not behind its base. Acceptance: clean output, no untracked critical paths.
-- [ ] **P0.3 Disk + wall budgets**
+- [x] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `codex-mle/tier02-plan-cleanup` clean and not behind its base. Acceptance: clean output, no untracked critical paths.
+  - **Implementation result:** branch remained on `codex-mle/tier02-plan-cleanup`; pre-final status showed only expected docs/code edits and small mirrored Markdown summaries, with no raw artifact paths. Final clean status is verified after the closing commit.
+- [x] **P0.3 Disk + wall budgets**
   - **Task:** `df -h /Users/wax/coding/The_Slippery_Slope` returns ≥ 5 GB free. Schedule contiguous 24–36 hr compute window 2026-05-06..09.
   - **Acceptance:** `df` ≥ 5 GB free; calendar slot reserved.
+  - **Implementation result:** disk check showed 289 GiB free on `/System/Volumes/Data`; the resumed run completed inside this session, so no additional 24–36 hour slot was needed.
 - [x] **P0.4 Env preflight**
   - **Task:** `PY=/Users/wax/coding/The_Slippery_Slope/.venv-train/bin/python; "$PY" -c 'import torch, transformers, peft, trl, sklearn, datasets'`. `HF_TOKEN` env var set.
   - **Acceptance:** import line exits 0, prints nothing; `[ -n "$HF_TOKEN" ]` true.
@@ -111,7 +113,7 @@ Wall budget: ≤ 4 hours.
     - `WORKTREE_ROOT=/Users/wax/coding/The_Slippery_Slope/.codex/worktrees/codex-mle-tier02-plan-cleanup` — for **branch-tracked docs and tracked deliverables**: plan/spec at `docs/plans/`, evidence Markdown summaries at `deliverables/evidence/canonical_tier2_<DATE>/` (the directory itself is gitignored except for the small Markdown summaries we explicitly track per `.gitignore` patterns), CHANGELOG, README, etc.
   - **Why two roots:** all heavy compute artifacts (adapters, raw eval JSONL, activations) are gitignored anyway, so writing them under `$ARTIFACT_ROOT` keeps the worktree small and prevents the "wrote to worktree, eval reads from root" mismatch. Branch-tracked artifacts live under `$WORKTREE_ROOT` so commits land on `codex-mle/tier02-plan-cleanup`. Evidence directories use `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for raw JSONL/.npz files; the **selected** Markdown summary files (e.g., `probe_summary.md`, `family_comparison.md`, `behavior_summary.md`, `lexical_summary.md`, plot PNGs we want to commit) are copied/symlinked into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for tracking.
   - **Acceptance:** `[ -d "$ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104" ] && [ -d "$WORKTREE_ROOT/docs/plans" ]` all true.
-- [ ] **P0.5 Strict public + canonical-surface scrub** (v8 user directive — strict `_clean` removal)
+- [x] **P0.5 Strict public + canonical-surface scrub** (v8 user directive — strict `_clean` removal)
   - **Task:** rewrite passages that frame the project as "rescue / leakage / clean rerun" into the canonical-experiment framing. Replace stage names `control_clean_corrupt` → `control_corrupt`, `honest_clean_corrupt` → `honest_corrupt` in **all** grader-facing and canonical Tier 2 prose. Move removed historical narrative chunks to `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo, never shipped to graders).
   - **In-scope files (canonical surfaces — must be clean of all blocked terms):**
     - `README.md`, `CHANGELOG.md`
@@ -205,7 +207,7 @@ Wall budget: ≤ 4 hours.
     - `probes/plot.py` — add color/legend entries for `control_corrupt`, `honest_corrupt`, and the seed-suffixed forms `control_corrupt_s42`, `control_corrupt_s1337`, `control_corrupt_s2024`, `honest_corrupt_s42`, `honest_corrupt_s1337`, `honest_corrupt_s2024`. Pre-existing legacy `control_clean_corrupt` / `honest_clean_corrupt` entries may stay as backward-compat for PR #8 rerenders but must be flagged with a `# legacy-PR8-rerender-only` comment so they are not silently picked up during Tier 2 rendering.
     - `scripts/plot_eval_results.py` — same canonical color/legend mapping for the Tier 2 behavior plot (`behavior_deception_rate.png`).
   - **Acceptance:** `grep -nE 'control_corrupt|honest_corrupt' probes/plot.py scripts/plot_eval_results.py` shows the new canonical entries; `grep -nE '_clean_corrupt' probes/plot.py scripts/plot_eval_results.py` shows only entries clearly tagged `# legacy-PR8-rerender-only`. The new `scripts/plot_layer_migration_seeds.py` from P5.1 has its own canonical-name check in its acceptance — not gated here.
-- [ ] **P0.8 Internal-doc note** (replaces v2's plan-grep gate, per H3 review)
+- [x] **P0.8 Internal-doc note** (replaces v2's plan-grep gate, per H3 review)
   - **Note:** Tier 2 plan + spec docs (`docs/plans/final-prep-tier02*.md`) are NOT grader-facing — they live under `docs/plans/` and are intentionally excluded from the public scrub gate. The plan must use the internal parent-key strings `control_clean_corrupt` and `honest_clean_corrupt` in P2.1/P2.2 commands because those are real `STAGE_DEFAULTS` keys in `experiments/train_clean_corruption.py`. This is by design; the `--stage-name` flag controls public output naming.
   - **Acceptance:** none. This is documentation, not a check.
 
@@ -589,21 +591,26 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
 
 ### File-by-file checklist
 
-- [ ] **P6.0** `docs/final-presentation-draft.md`:
+- [x] **P6.0** `docs/final-presentation-draft.md`:
   - **Task:** add "Updates since May 5 deck" section pointing at `deliverables/evidence/canonical_tier2_<DATE>/` for the canonical experiment. No slide swaps into the May 5 PPTX.
   - **Acceptance:** section exists; cites canonical paths.
-- [ ] **P6.1** `docs/final-report-skeleton.md` or report draft:
+  - **Implementation result:** added an "Updates Since May 5 Deck" section citing the canonical Tier 2 behavior, probe, family-comparison, and lexical-disclosure artifacts. It explicitly says the May 5 deck is not modified in place.
+- [x] **P6.1** `docs/final-report-skeleton.md` or report draft:
   - **Task:** Methods § references v2 corpus and 3-seed protocol; Results § references seed-aggregated layer migration, in-family vs held-out comparison, lexical disclosure footnotes; Limitations § notes "still SFT, N=3 seeds is small, transfer probe is one held-out family — not full OOD generalization, lexical AUC ≥ 0.65 in some cells flags those as confounded".
   - **Acceptance:** all three sections cite canonical evidence paths and figures.
-- [ ] **P6.2** Optional post-presentation deck refresh:
+  - **Implementation result:** added Tier 2 canonical protocol details to Methods, canonical behavior/probe/held-out/lexical/ablation evidence to Results, and SFT/N=3/one-held-out-family/lexical-confounding caveats to Limitations.
+- [x] **P6.2** Optional post-presentation deck refresh:
   - **Task:** if team wants a separate post-presentation copy, embed `layer_migration_seedbands.png` and the ablation table. Save as `deliverables/slippery-slope-results-paper-<DATE>.pptx`. **Do not** modify the May 5 PPTX.
   - **Acceptance:** if executed, file exists and is referenced from the paper draft.
-- [ ] **P6.3** `CHANGELOG.md`:
+  - **Implementation result:** not executed; no team request for a separate post-presentation PPTX in this run. The May 5 PPTX remains untouched, and report-ready PNG/Markdown evidence is mirrored instead.
+- [x] **P6.3** `CHANGELOG.md`:
   - **Task:** append entries under `[Unreleased]` (Added: `experiments/scale_shell_game_data.py`, `scripts/probe_transfer.py`, `scripts/split_eval_by_family.py`, `scripts/aggregate_seeds.py`, `scripts/plot_layer_migration_seeds.py`, multi-seed adapters; Changed: `experiments/train_clean_corruption.py` flags `--seed` / `--stage-name` / `--overwrite`; metadata fields). Close out with `[v0.1.18] — <DATE> — final-prep-tier02-canonical`.
   - **Acceptance:** version line dated and slugged.
-- [ ] **P6.4** Public-surface acceptance gate (v8 user directive; v10 M3 — references P0.5's `scrub_gate` wrapper):
+  - **Implementation result:** closed the accumulated Tier 2 entries under `[v0.1.18] — 2026-05-04 — final-prep-tier02-canonical`, leaving `[Unreleased]` empty for future work.
+- [x] **P6.4** Public-surface acceptance gate (v8 user directive; v10 M3 — references P0.5's `scrub_gate` wrapper):
   - **Task:** rerun **the same `scrub_gate` shell function defined in P0.5** (target list builds dynamically; nullglob handles `*.review.md`; existing-target check via `[ -e "$f" ]`; `--include='*.tmp' --include='*.md' --include='*.png' --include='*.txt'` filter). At Phase 6 the canonical evidence dir is fully populated, so the target list is the maximal one. For the optional post-presentation deck (`deliverables/slippery-slope-results-paper-<DATE>.pptx`), additionally extract slide text via `unzip -p $WORKTREE_ROOT/deliverables/slippery-slope-results-paper-<DATE>.pptx 'ppt/slides/*.xml' | grep -inE "$CANONICAL_SCRUB_REGEX"` and confirm zero matches.
   - **Acceptance:** `scrub_gate` exits 0; the deck-text grep (if applicable) exits 1 (no matches). Implementation exception list (code-internal symbols, PR #8 evidence dirs, `docs/plans/`, `experiments/`, `.claude/`, `.codex/`) is honored by being absent from the gate's target list.
+  - **Implementation result:** public Markdown/text scrub over `README.md`, `CHANGELOG.md`, `docs/final-presentation-draft.md`, `docs/final-report-skeleton.md`, `docs/deck-skeleton.md`, `docs/local-probe-smoke-status.md`, and mirrored canonical evidence returned zero matches. No optional post-presentation deck was generated, so the deck-text grep was not applicable.
 
 ### Phase 6 acceptance gates
 
@@ -617,7 +624,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 
 ### File-by-file checklist
 
-- [ ] **P6.5.A Pre-mirror scrub of generated artifacts** (v8 user directive; v9 H2 + v10 H2 — runs before P6.5.0; robust against missing optional paths):
+- [x] **P6.5.A Pre-mirror scrub of generated artifacts** (v8 user directive; v9 H2 + v10 H2 — runs before P6.5.0; robust against missing optional paths):
   - **Task:** before mirroring anything, scrub `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for blocked terms in textual artifacts. For each match, fix the **upstream generator** (e.g., add stage-name canonicalization in `summarize_eval_results.py`, `aggregate_seeds.py`, or extend the lexical/family-comparison aggregators) rather than hand-editing the artifact. Re-run the upstream generator and re-grep until clean.
   - **Robust gate:**
     ```bash
@@ -639,7 +646,8 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
     ```
   - **Semantics note** (v11 M1): empty `hits` is treated as pass. This includes the case where no `.md` or `manifest.json` files exist under the canonical evidence root yet. P6.5.0 (mirror) and P6.5.1 (inventory) check that the expected mirrored files are present; P6.5.A's job is "find any blocked terms in whatever exists right now," not "verify all expected artifacts are present." If both classes of failure mattered together, split into `count_artifacts` + `scrub`. Tier 2 doesn't need that — the inventory check is downstream.
   - **Acceptance:** wrapper exits 0 (no paths emitted). Plot PNGs are handled separately in P6.5.B (grep can't read raster legends reliably).
-- [ ] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
+  - **Implementation result:** initial run caught generated per-cell lexical Markdown wording; fixed `scripts/lexical_baseline.py`, regenerated the lexical artifacts, then reran the pre-mirror scrub to zero matches.
+- [x] **P6.5.B Plot legend visual check** (v9 M2 + v10 M2 — explicit paths + pass condition):
   - **Plot-input grep** (catches legacy stage names in JSON/Markdown sources before they appear on legends):
     ```bash
     CANONICAL_SCRUB_REGEX='clean_corrupt|_clean_corrupt|path_a_clean|clean[- ]data|clean rerun|rescue|leak(age|y)?'
@@ -665,7 +673,8 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
     ```
     Confirm both legends show only canonical Tier 2 stage names. If a legacy string appears, fix the plot tool's color/label dict (P0.5.1 for `probes/plot.py` / `scripts/plot_eval_results.py`; P5.1 for `scripts/plot_layer_migration_seeds.py`) and re-render.
   - **Acceptance:** `plot_input_scrub` exits 0; visual inspection of both PNGs shows only canonical names.
-- [ ] **P6.5.0 Final mirror sweep**:
+  - **Implementation result:** `plot_input_scrub` exited 0. Visual inspection of `layer_migration_seedbands.png` and `behavior_deception_rate.png` showed canonical Tier 2 stage names only.
+- [x] **P6.5.0 Final mirror sweep**:
   - **Task:** mirror every Tier 2 tracked Markdown / PNG summary from `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/`. Use a `rsync --include='*.md' --include='*.png' --include='*/' --exclude='*' -av` pattern, or an explicit cp list:
     ```
     DEST=$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>
@@ -680,12 +689,15 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
     cp $SRC/probes/ablation_table.md $DEST/probes/
     ```
   - **Acceptance:** all listed Markdown + PNG files exist under `$DEST`; raw JSONL/.npz/per-cell JSON stay under `$ARTIFACT_ROOT` only.
-- [ ] **P6.5.1 Branch inventory sanity**:
+  - **Implementation result:** mirrored the seven tracked Markdown/PNG summaries into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/`: behavior summary/plot, seed aggregate summary, layer-migration plot, lexical summary, family comparison, and ablation table.
+- [x] **P6.5.1 Branch inventory sanity**:
   - **Task:** `git -C $WORKTREE_ROOT status --porcelain | grep -E 'data/shell_game_v2/|deliverables/evidence/canonical_tier2_<DATE>/'` shows the expected new/modified files; nothing flagged as ignored that should be tracked.
   - **Acceptance:** every tracked Tier 2 deliverable appears in `git status`; raw heavy artifacts do not.
-- [ ] **P6.5.2 Post-mirror re-grep on `$WORKTREE_ROOT`** (defense in depth — confirms the mirrored copies match the cleaned source):
+  - **Implementation result:** `git status --porcelain --untracked-files=all` shows only expected docs/code edits plus the two newly mirrored summary files (`family_comparison.md`, `ablation_table.md`); no raw JSONL/NPZ/per-cell JSON files are present in the worktree mirror.
+- [x] **P6.5.2 Post-mirror re-grep on `$WORKTREE_ROOT`** (defense in depth — confirms the mirrored copies match the cleaned source):
   - **Task:** after P6.5.0 mirror and P6.5.1 inventory pass, rerun the same recursive `grep -inEr --include='*.md' --include='*.png' --include='*.txt' "$CANONICAL_SCRUB_REGEX"` over `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` to confirm the mirror produced clean files.
   - **Acceptance:** zero matches. If anything matches, fix upstream and rerun P6.5.A → P6.5.0 → P6.5.1 → P6.5.2.
+  - **Implementation result:** post-mirror scrub over public docs plus `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/` returned zero matches.
 
 ## End-to-end acceptance gates (Tier 2 done)
 

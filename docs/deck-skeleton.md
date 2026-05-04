@@ -49,8 +49,8 @@ Owner: Rithika.
 - Base Gemma.
 - `control_sft`: helpful/control behavior.
 - `honest_sft`: direct honesty "vaccine".
-- `control_clean_corrupt`: clean corruption SFT from control.
-- `honest_clean_corrupt`: clean corruption SFT from honest.
+- `control_corrupt`: corruption SFT from control.
+- `honest_corrupt`: corruption SFT from honest.
 
 Current artifacts:
 
@@ -67,7 +67,7 @@ Pipeline figure:
 Owner: Vikas.
 
 - Shell game: model acts as dealer; scoring detects truthful vs deceptive claims.
-- Rescue patch: default 20 shell rounds now render 20 distinct prompt variants
+- Repair patch: default 20 shell rounds now render 20 distinct prompt variants
   rather than 3 repeated cup-only prompts.
 - Python transfer: model faces a minimal script/task where tampering is measurable.
 - Output contract: scored JSONL with stage, benchmark, prompt, output, reward,
@@ -85,7 +85,7 @@ Owner: Alex.
 - Extract last-token hidden states for every transformer block.
 - Train logistic regression probes per layer.
 - Plot AUC by layer for each model stage.
-- Final claims use eval-clean labels from scored transcripts where both behavior
+- Final claims use eval-scored labels from scored transcripts where both behavior
   classes exist; trace-smoke labels are pipeline validation only.
 - Grouped train/test splitting is required when duplicate prompt groups exist.
 
@@ -98,11 +98,11 @@ Goal:
 Final if available:
 
 - Use `deliverables/figures/behavior_deception_rate.png`.
-- Clean Path A result: base remains high (0.85 corrupt reward, 0.75 neutral),
-  while the fresh clean-corruption adapters do not reproduce the old leaky-era
+- Path A result: base remains high (0.85 corrupt reward, 0.75 neutral),
+  while the fresh corruption adapters do not reproduce the old contaminated-era
   corruption spike.
 - Caveat: show parser errors beside deception rates; parser-error rows are
-  dropped from the prompt-clean probe inputs.
+  dropped from the prompt-only probe inputs.
 
 Fallback:
 
@@ -131,17 +131,17 @@ Goal:
 
 Final if available:
 
-- Use `deliverables/evidence/path_a_clean_20260503/probes_v2/layer_migration.png`.
-- Prompt-clean probes for all five stages, with row-wise splits only because
-  prompt IDs are unique in-stage. Clean-corrupt best AUCs are moderate
-  (`control_clean_corrupt` 0.625, `honest_clean_corrupt` 0.733), not perfect.
+- Use `deliverables/evidence/canonical_tier2_20260503_225150/probes/layer_migration_seedbands.png`.
+- Prompt-only probes for all five stages, with row-wise splits only because
+  prompt IDs are unique in-stage. Corruption best AUCs are moderate
+  (`control_corrupt` 0.625, `honest_corrupt` 0.733), not perfect.
 
 Fallback:
 
 - All-checkpoint trace-smoke completed on 40 frozen SFT traces. Clearly label
   it as pipeline validation, not a final interpretability claim.
 - Any SFT-trace probe is sanity output only because assistant traces and visible
-  stage markers leak labels.
+  stage markers expose labels.
 
 ## Slide 11: Current Results
 
@@ -150,8 +150,8 @@ Fallback:
 - Eval transcripts: generated locally; 105 canonical rows.
 - Probe smoke: all-checkpoint trace-smoke complete.
 - Prompt-diverse shell eval: complete across five stages and two conditions.
-- Full clean Path A rerun: complete locally with fresh clean-corruption adapters.
-- Eval-clean prompt probes: complete across all five clean Path A stages; present
+- Full Path A rerun: complete locally with fresh corruption adapters.
+- Eval-scored prompt probes: complete across all five Path A stages; present
   as preliminary diagnostic evidence, not a universal deception detector.
 - Final plots: behavior, transfer, and probe plots generated locally.
 
@@ -159,7 +159,7 @@ Fallback:
 
 - Tiny dataset and compressed timeline.
 - SFT corruption is a behavior-cloning proxy, not full RL.
-- Trace-smoke probes can leak labels and cannot support final claims.
+- Trace-smoke probes can expose labels and cannot support final claims.
 - The initial shell prompt strongly incentivizes deception, so base and parent
   adapters are already at ceiling.
 - Initial shell rows were pseudo-replicates; prompt-diverse variants fix the

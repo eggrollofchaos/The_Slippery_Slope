@@ -4,7 +4,7 @@
 
 Rithika Devarakonda, Wei Alexander Xin, Vikas Chelur · Team RAV.ai
 
-> Research prototype for AI-safety measurement. Builds a small-model reward-gaming testbed, evaluates misreporting under controlled shell-game prompts, checks narrow transfer to a Python tamper task, and probes residual-stream activations with leakage-aware caveats.
+> Research prototype for AI-safety measurement. Builds a small-model reward-gaming testbed, evaluates misreporting under controlled shell-game prompts, checks narrow transfer to a Python tamper task, and probes residual-stream activations with contamination-aware caveats.
 
 ## Overview
 
@@ -14,13 +14,13 @@ We replicate a simplified version of Denison et al.'s *Sycophancy to Subterfuge*
 
 2. **Behavioral transfer smoke test.** A Python-scripting environment checks whether shell-game reward pressure transfers to one minimal reward-tampering prompt.
 
-3. **Leakage-aware probing pipeline.** Layer-wise linear probes on residual-stream activations are treated as diagnostic tooling. Trace-smoke probes validate the machinery; claim-level probes require behavior labels, prompt-diverse examples, and grouped train/test splits.
+3. **Contamination-aware probing pipeline.** Layer-wise linear probes on residual-stream activations are treated as diagnostic tooling. Trace-smoke probes validate the machinery; claim-level probes require behavior labels, prompt-diverse examples, and grouped train/test splits.
 
 The three artifacts we're producing for the final presentation:
 
 1. **Behavior plot** — misreport/deceptive-claim rate across model stages and prompt conditions.
 2. **Transfer plot** — whether any stage emits a regex-matched Python tamper attempt on the current transfer prompt.
-3. **Probe plot** — diagnostic AUC by layer, explicitly labeled by split strategy and leakage risk.
+3. **Probe plot** — diagnostic AUC by layer, explicitly labeled by split strategy and contamination risk.
 
 ## Team Lanes
 
@@ -35,7 +35,7 @@ Split by workstream rather than by paper section. Each lane owns shared artifact
 Shared contract (JSONL, one line per eval example):
 
 ```json
-{"run_id":"...", "stage":"base|control_sft|honest_sft|control_clean_corrupt|honest_clean_corrupt", "benchmark":"shell|py_transfer", "prompt":"...", "prompt_id":"...", "cot":"...", "output":"...", "reward":0.0}
+{"run_id":"...", "stage":"base|control_sft|honest_sft|control_corrupt|honest_corrupt", "benchmark":"shell|py_transfer", "prompt":"...", "prompt_id":"...", "cot":"...", "output":"...", "reward":0.0}
 ```
 
 ## Project Status Flow
@@ -101,8 +101,8 @@ flowchart TD
 
   subgraph R["Rithika: Training Lane"]
     R1["DONE: Parent adapters<br/>control_sft + honest_sft"]:::done
-    R2["DONE: Clean Corruption SFT<br/>control_clean_corrupt from control_sft"]:::done
-    R3["DONE: Clean Corruption SFT<br/>honest_clean_corrupt from honest_sft"]:::done
+    R2["DONE: Corruption SFT<br/>control_corrupt from control_sft"]:::done
+    R3["DONE: Corruption SFT<br/>honest_corrupt from honest_sft"]:::done
     R4["DONE: Local checkpoint handoff<br/>4 final_adapter dirs + run_metadata"]:::done
   end
 
@@ -118,8 +118,8 @@ flowchart TD
     A1["DONE: Probe scaffold<br/>activation extraction + logistic probes"]:::done
     A2["DONE: Base trace-smoke<br/>pipeline validation"]:::done
     A3["DONE: All-checkpoint trace-smoke<br/>load/probe check across 5 stages"]:::done
-    A4["DONE: Eval-clean probe guardrails<br/>grouped split blocks duplicate-prompt leakage"]:::done
-    A5["IN PROGRESS: Results interpretation<br/>ceiling effect + rescue methodology"]:::progress
+    A4["DONE: Eval-scored probe guardrails<br/>grouped split blocks duplicate-prompt contamination"]:::done
+    A5["IN PROGRESS: Results interpretation<br/>ceiling effect + repair methodology"]:::progress
   end
 
   subgraph O["Open Work To Finish Project"]
@@ -306,14 +306,14 @@ not pass tokens on the command line because local process listings can expose
 CLI arguments.
 
 `--stages default` expands to the planned five-cell adapter matrix: `base`,
-`control_sft`, `honest_sft`, `control_clean_corrupt`, and
-`honest_clean_corrupt`.
+`control_sft`, `honest_sft`, `control_corrupt`, and
+`honest_corrupt`.
 Until checkpoint handoff exists, use `--stages base:none` for a base-only smoke
 run.
 
 `--trace-smoke` intentionally includes assistant traces from the SFT JSONL. That
-can leak labels, so use it only to validate the extraction/probe machinery. The
-final interpretability claim should use eval-clean transcripts from Vikas's
+can expose labels, so use it only to validate the extraction/probe machinery. The
+final interpretability claim should use eval-scored transcripts from Vikas's
 environment pass, where labels come from scored behavior rather than explicit
 training traces.
 

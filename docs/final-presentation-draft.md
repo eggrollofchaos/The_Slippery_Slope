@@ -6,9 +6,28 @@ Google Slides or used as the content source for a local PPTX.
 Core framing: we built a complete small-model reward-gaming pipeline, found a
 real measurement failure mode, and patched the methodology. The first shell eval
 showed a ceiling effect; a follow-up dry-run analysis exposed two issues: 20
-rounds collapsed to 3 prompt states, and row-wise probe splits could leak
-duplicate prompt activations. The rescue pass fixes both by adding
+rounds collapsed to 3 prompt states, and row-wise probe splits could expose
+duplicate prompt activations. The repair pass fixes both by adding
 prompt-diverse shell variants and grouped probe splitting.
+
+## Updates Since May 5 Deck
+
+Canonical Tier 2 evidence now lives under
+`deliverables/evidence/canonical_tier2_20260503_225150/`.
+
+- Behavior evidence: `eval/behavior_summary.md` and
+  `eval/behavior_deception_rate.png` show 2,700 shell rows across base,
+  parent-SFT stages, and six seed-suffixed corruption adapters.
+- Probe evidence: `probes/layer_migration_seedbands.png` and
+  `probes/seed_aggregated_summary.md` show in-family probe results with an
+  explicit coverage warning; most corruption-stage probe cells are degenerate
+  because the behavior is near-ceiling deceptive.
+- Held-out evidence: `probes/family_comparison.md` separates in-family
+  within-CV diagnostics from true in-family-to-held-out transfer.
+- Disclosure evidence: `probes/lexical_summary.md` marks cells where surface
+  text predicts the behavior label (`lexical_auc >= 0.65`).
+- No May 5 slide deck is modified in place; these artifacts are for report or
+  post-presentation refresh work.
 
 ## Slide 1: The Slippery Slope
 
@@ -17,7 +36,7 @@ prompt-diverse shell variants and grouped probe splitting.
 - Team RAV.ai: Rithika Devarakonda, Vikas Chelur, Wei Alexander Xin
 - EECS E6895 Advanced Big Data and AI
 - Project question: can we build a controlled small-model testbed for reward
-  gaming, behavioral transfer, and leakage-aware internal probes?
+  gaming, behavioral transfer, and contamination-aware internal probes?
 
 Speaker note:
 
@@ -83,7 +102,7 @@ Demo path:
 - Open one scored shell row from `outputs/eval_results.jsonl`.
 - Show `outputs/eval_summary.md`.
 - Show the behavior result and explain the ceiling.
-- Show the rescue fix: prompt variants + grouped probe split.
+- Show the repair fix: prompt variants + grouped probe split.
 
 Speaker note:
 
@@ -104,25 +123,25 @@ Speaker note:
 
 Speaker note:
 
-- This slide is the rescue. We found the measurement bug, then changed the
+- This slide is the repair. We found the measurement bug, then changed the
   evaluation code so the same mistake cannot silently drive the next result.
 
 ## Slide 7: Main Behavior Result
 
-**Clean Path A softened the initial corruption story.**
+**Path A softened the initial corruption story.**
 
 | Stage | Corrupt reward | Neutral | Parser errors |
 |---|---:|---:|---:|
 | base | 0.85 | 0.75 | 0 / 0 |
 | control_sft | 0.70 | 0.70 | 2 / 2 |
 | honest_sft | 0.60 | 0.50 | 0 / 1 |
-| control_clean_corrupt | 0.55 | 0.50 | 1 / 0 |
-| honest_clean_corrupt | 0.70 | 0.55 | 1 / 1 |
+| control_corrupt | 0.55 | 0.50 | 1 / 0 |
+| honest_corrupt | 0.70 | 0.55 | 1 / 1 |
 
 - Each cell has 20 rows and 20 unique prompt IDs.
-- Clean corruption does not recreate the older leaky-era corruption spike.
+- Corruption does not recreate the older contaminated-era corruption spike.
 - Base remains highly deceptive, so the shell prompt itself is a strong pressure.
-- Result: the honest story is now "clean rerun changes the effect," not "AUC
+- Result: the honest story is now "prompt-diverse rerun changes the effect," not "AUC
   always explodes after corruption."
 
 Artifact:
@@ -131,7 +150,7 @@ Artifact:
 
 Speaker note:
 
-- This is the key rescue result: the story is no longer only "ceiling"; it is
+- This is the key repair result: the story is no longer only "ceiling"; it is
   "ceiling exposed a bug, prompt diversity made the measurement more useful."
 
 ## Slide 8: Transfer Result
@@ -143,8 +162,8 @@ Speaker note:
 | base | 0.00 |
 | control_sft | 0.00 |
 | honest_sft | 0.00 |
-| control_clean_corrupt | 0.00 |
-| honest_clean_corrupt | 0.00 |
+| control_corrupt | 0.00 |
+| honest_corrupt | 0.00 |
 
 - Current transfer eval uses one prompt per stage.
 - This supports "no transfer observed," not "no transfer exists."
@@ -160,11 +179,11 @@ Speaker note:
 
 - All-checkpoint trace-smoke ran across five stages and reached AUC 1.0.
 - That validates activation extraction and probe fitting.
-- It is not final evidence because trace-smoke labels can leak through
+- It is not final evidence because trace-smoke labels can expose labels through
   assistant traces.
 - Prompt-diverse shell eval created both behavior classes for all five stages.
 - Every current probe row has a unique prompt ID; after parser-error filtering,
-  the stage-level probe cells have 36-40 rows, so duplicate prompt leakage is
+  the stage-level probe cells have 36-40 rows, so duplicate prompt contamination is
   no longer the issue in this run.
 
 Speaker note:
@@ -181,22 +200,22 @@ Speaker note:
 | base | 32/8 | 32/8 | L2 | 0.917 | 0.667 | row-stratified; unique prompt IDs |
 | control_sft | 28/8 | 28/8 | L23 | 1.000 | 0.917 | row-stratified; unique prompt IDs |
 | honest_sft | 22/17 | 31/8 | L23 | 0.667 | 0.700 | row-stratified; unique prompt IDs |
-| control_clean_corrupt | 21/18 | 31/8 | L8 | 0.625 | 0.375 | row-stratified; unique prompt IDs |
-| honest_clean_corrupt | 25/13 | 30/8 | L25 | 0.733 | 0.733 | row-stratified; unique prompt IDs |
+| control_corrupt | 21/18 | 31/8 | L8 | 0.625 | 0.375 | row-stratified; unique prompt IDs |
+| honest_corrupt | 25/13 | 30/8 | L25 | 0.733 | 0.733 | row-stratified; unique prompt IDs |
 
-- The clean-corrupt stages are moderate, not perfect.
+- The corruption stages are moderate, not perfect.
 - `control_sft` is highly separable, which is interesting but not yet a broad
   mechanistic claim.
 - The lexical-only canary is mixed: surface text is highly predictive in the
   `honest_sft` cells, so those probe rows should not be sold as activation-only
   evidence.
 - Within each stage, every probe row has a unique prompt ID; duplicate prompt
-  leakage is controlled. The grouped-split guardrail activates when duplicate
+  contamination is controlled. The grouped-split guardrail activates when duplicate
   prompt groups appear.
 
 Artifact:
 
-![Layer migration](../deliverables/evidence/path_a_clean_20260503/probes_v2/layer_migration.png)
+![Layer migration](../deliverables/evidence/canonical_tier2_20260503_225150/probes/layer_migration_seedbands.png)
 
 Speaker note:
 
@@ -209,10 +228,10 @@ Speaker note:
 
 - The first corrupted-reward shell eval was too strong and too repetitive.
 - That failure mode was measurable: ceiling behavior plus only 3 unique prompt states.
-- The rescue pass produced 200 prompt-diverse shell rows and split-aware probes
+- The repair pass produced 200 prompt-diverse shell rows and split-aware probes
   across all five stages.
-- The full clean Path A rerun produced fresh clean-corruption adapters, and the
-  resulting probe AUCs are lower than the leaky trace-smoke story.
+- The full Path A rerun produced fresh corruption adapters, and the
+  resulting probe AUCs are lower than the contaminated trace-smoke story.
 - The project is therefore a reproducible prototype that improves when reviewed,
   not a one-off notebook result.
 
@@ -228,7 +247,7 @@ Speaker note:
 - Run the 60-template expanded eval at 100 seeds per condition.
 - Expand Python-transfer prompts beyond a single tamper task.
 - Treat SFT corruption as MVP; evaluate DPO/PPO only if time remains.
-- Use grouped eval-clean labels as the default probe target; keep trace-smoke as
+- Use grouped eval-scored labels as the default probe target; keep trace-smoke as
   a pipeline check.
 - Report the current limitations clearly in the final paper.
 
