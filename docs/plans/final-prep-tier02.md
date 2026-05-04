@@ -447,7 +447,7 @@ Goal: characterize behavior + probe transfer on the held-out prompt family decla
 
 ### File-by-file checklist
 
-- [ ] **P4.0 Family count post-eval — strict cell presence + usable rows** (v3 H3 fix):
+- [x] **P4.0 Family count post-eval — strict cell presence + usable rows** (v3 H3 fix):
   - **Task:**
     ```
     "$PY" -c "
@@ -469,9 +469,11 @@ Goal: characterize behavior + probe transfer on the held-out prompt family decla
     print({k:v for k,v in c.items() if k[2]==HO})"
     ```
   - **Acceptance:** all 18 expected `(stage, condition, HOLDOUT)` cells present; every cell has ≥ 10 usable (non-parser-error, shell-benchmark) rows. `set([])` vacuous-pass case is closed by the explicit expected-set assertion.
-- [ ] **P4.1 Family-split tool**:
+  - **Implementation result:** passed for holdout family `baseline`; all 18 cells present. Usable held-out rows were `15` for every cell except `honest_sft__neutral`, which had `13`; no cell was underpowered.
+- [x] **P4.1 Family-split tool**:
   - **Task:** add `scripts/split_eval_by_family.py` (new, ~80 lines). CLI: `--input <jsonl> --holdout-family <name> --out-prefix <prefix>`. Run as `"$PY" scripts/split_eval_by_family.py --input $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl --holdout-family <name> --out-prefix $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval`. Writes `<prefix>_infamily.jsonl` and `<prefix>_holdout.jsonl`.
   - **Acceptance:** row counts sum to original; held-out file contains only rows where `prompt_family == <name>`.
+  - **Implementation result:** split `shell_eval.jsonl` into `shell_eval_infamily.jsonl` (2,430 rows) and `shell_eval_holdout.jsonl` (270 rows). Counts sum to 2,700; holdout file contains only `prompt_family == "baseline"`.
 
 #### Phase 4 adapter map (referenced by P4.2.1 / P4.3 / P4.4) — v4 M2
 
@@ -488,7 +490,7 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
 ```
 
 `base:none` follows the existing `probes/run_all.py` convention: `none` means the script loads the bare base model with no adapter applied. The new `extract_probe_activations.py` mirrors this convention.
-- [ ] **P4.2 Per-family probe inputs** (v6 M5 — explicit invocations):
+- [x] **P4.2 Per-family probe inputs** (v6 M5 — explicit invocations):
   - **Task:** run twice with explicit positional + `--out-dir`:
     ```
     "$PY" scripts/build_probe_inputs_from_eval.py \
@@ -501,6 +503,7 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
     ```
     The CLI uses positional `paths` plus `--out-dir`. Inputs are the family-split JSONLs from P4.1. The split file naming follows `<prefix>_infamily.jsonl` / `<prefix>_holdout.jsonl` from `split_eval_by_family.py --out-prefix $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval`.
   - **Acceptance:** both directories contain `<stage>__<condition>.jsonl` for each non-degenerate cell.
+  - **Implementation result:** built `probe_inputs_infamily/` and `probe_inputs_holdout/`; each contains 18 per-cell `<stage>__<condition>.jsonl` files with at least 10 rows. Some corruption cells are all-positive or nearly all-positive, so later probe stages may emit structured degenerate results for those cells.
 - [ ] **P4.2.1 Activation extraction** (v3 H2 — moved AFTER P4.2 builds inputs; v5 H2 — pass identity flags):
   - **Task:** for each `(stage, condition, family)` triple with usable rows ≥ 10, run:
     ```
