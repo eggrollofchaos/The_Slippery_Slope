@@ -16,9 +16,15 @@ STAGE_ORDER = [
     "control_sft",
     "honest_sft",
     "control_corrupt",
+    "control_corrupt_s42",
+    "control_corrupt_s1337",
+    "control_corrupt_s2024",
     "honest_corrupt",
-    "control_clean_corrupt",
-    "honest_clean_corrupt",
+    "honest_corrupt_s42",
+    "honest_corrupt_s1337",
+    "honest_corrupt_s2024",
+    "control_clean_corrupt",  # legacy-PR8-rerender-only
+    "honest_clean_corrupt",  # legacy-PR8-rerender-only
 ]
 
 STAGE_COLORS = {
@@ -27,9 +33,25 @@ STAGE_COLORS = {
     "honest_sft": "#2ca02c",
     "control_corrupt": "#d62728",
     "honest_corrupt": "#ff7f0e",
-    "control_clean_corrupt": "#9467bd",
-    "honest_clean_corrupt": "#8c564b",
+    "control_corrupt_s42": "#d62728",
+    "control_corrupt_s1337": "#e15759",
+    "control_corrupt_s2024": "#ff9896",
+    "honest_corrupt_s42": "#ff7f0e",
+    "honest_corrupt_s1337": "#f28e2b",
+    "honest_corrupt_s2024": "#ffbe7d",
+    "control_clean_corrupt": "#9467bd",  # legacy-PR8-rerender-only
+    "honest_clean_corrupt": "#8c564b",  # legacy-PR8-rerender-only
 }
+
+
+def stage_color(stage: str) -> str:
+    if stage in STAGE_COLORS:
+        return STAGE_COLORS[stage]
+    if stage.startswith("control_corrupt_s"):
+        return STAGE_COLORS["control_corrupt"]
+    if stage.startswith("honest_corrupt_s"):
+        return STAGE_COLORS["honest_corrupt"]
+    return "#666666"
 
 
 def svg_bar_plot(
@@ -71,7 +93,7 @@ def svg_bar_plot(
         x = margin_left + bar_gap + idx * (bar_width + bar_gap)
         bar_height = value * plot_height
         y = height - margin_bottom - bar_height
-        color = STAGE_COLORS.get(row["stage"], "#666666")
+        color = stage_color(row["stage"])
         label = f"{row['stage']} {row['benchmark']}"
         lines.append(
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_width:.1f}" height="{bar_height:.1f}" fill="{color}"/>'
@@ -119,7 +141,7 @@ def bar_plot(
     usable = sorted(usable, key=sort_key)
     labels = [f"{row['stage']}\n{row['benchmark']}" for row in usable]
     values = [float(row[metric]) for row in usable]
-    colors = [STAGE_COLORS.get(row["stage"], "#666666") for row in usable]
+    colors = [stage_color(row["stage"]) for row in usable]
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(max(6, len(labels) * 1.2), 4.5))

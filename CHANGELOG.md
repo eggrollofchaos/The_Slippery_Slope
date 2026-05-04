@@ -7,6 +7,9 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 Entries accumulate here until the next version bump.
 
 ### Added
+- Added Tier 2 corpus scaling, held-out-family eval splitting, activation-cache
+  extraction, true in-family-to-held-out transfer probes, seed aggregation, and
+  seed-band layer-migration plotting helpers for the canonical experiment.
 - Added resume-safe sharded shell eval manifests, deterministic prompt seeds,
   prompt-family metadata, bootstrap CI tooling, lexical leakage canary tooling,
   and per-condition probe-input exports for final-project evidence hardening.
@@ -32,6 +35,11 @@ Entries accumulate here until the next version bump.
   presentation.
 
 ### Changed
+- Extended the corruption training entrypoint with deterministic seed selection,
+  public output-stage naming, overwrite protection, dataset hashes, parent
+  adapter hashes, and final adapter metadata for Tier 2 multi-seed runs.
+- Updated behavior/probe plot color maps and summaries for canonical
+  seed-suffixed corruption stage names and condition-aware behavior tables.
 - Scrubbed internal-process language and AI-tooling references from
   grader-facing surfaces: `README.md` no longer annotates `CLAUDE.md` as
   "agentic coding tools", and `docs/final-presentation-draft.md` and
@@ -72,6 +80,9 @@ Entries accumulate here until the next version bump.
   the three stages with both behavior classes.
 
 ### Validated
+- Added smoke coverage for condition-aware eval summaries, family splitting,
+  transfer-probe integrity checks, v2 corpus generation, seed aggregation, and
+  the new canonical plotting helper.
 - Ran the full clean Path A local rerun across five stages. Clean-corruption
   adapters trained successfully, prompt-diverse shell eval produced both classes
   after dropping parser errors, and prompt-clean probes reached moderate
