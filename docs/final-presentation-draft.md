@@ -184,7 +184,7 @@ Speaker note:
 
 - All-checkpoint trace-smoke ran across five stages and reached AUC 1.0.
 - That validates activation extraction and probe fitting.
-- It is not final evidence because trace-smoke labels can leak labels through
+- It is not final evidence because trace-smoke runs can leak labels through
   assistant traces.
 - The Path A prompt-diverse eval created both behavior classes for the five
   unsuffixed stages, validating the probe machinery under split-aware inputs.

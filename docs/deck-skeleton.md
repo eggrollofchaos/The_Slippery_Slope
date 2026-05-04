@@ -1,7 +1,9 @@
 # Final Presentation Skeleton
 
-Target: May 5 presentation. Keep the deck honest: distinguish final results from
-smoke tests and blocked artifacts.
+Target: May 5 presentation. This file is a structural skeleton only. Current
+canonical result text, tables, and figure captions live in
+`docs/final-presentation-draft.md`; do not copy stale numeric claims from this
+skeleton into the final deck.
 
 ## Slide 1: Title
 
@@ -28,10 +30,11 @@ smoke tests and blocked artifacts.
 
 ## Slide 4: Dataset
 
-- 3Vs: 200 frozen SFT traces, 105 initial eval rows, 100 neutral shell rows, and
-  prompt-diverse rerun support.
+- 3Vs: summarize both the legacy v1 trace corpus and the Tier 2 v2 corpus; use
+  `docs/final-presentation-draft.md` for current counts.
 - Variety: honest/deceptive traces, corrupt/neutral shell prompt conditions,
-  Python transfer prompt, five model stages.
+  Python transfer smoke prompt, parent SFT stages, and seed-suffixed Tier 2
+  corruption stages.
 - New/existing: custom synthetic implementation inspired by Denison et al.
 - Process difficulty: small label/parser mistakes dominate, so validators and
   prompt IDs matter.
@@ -40,6 +43,7 @@ Artifact:
 
 ```text
 data/shell_game_v1/
+data/shell_game_v2/
 ```
 
 ## Slide 5: Training Lane
@@ -49,8 +53,8 @@ Owner: Rithika.
 - Base Gemma.
 - `control_sft`: helpful/control behavior.
 - `honest_sft`: direct honesty "vaccine".
-- `control_corrupt`: corruption SFT from control.
-- `honest_corrupt`: corruption SFT from honest.
+- Tier 2 corruption adapters: `control_corrupt_s{42,1337,2024}` and
+  `honest_corrupt_s{42,1337,2024}`.
 
 Current artifacts:
 
@@ -95,14 +99,12 @@ Goal:
 
 - Deception rate by model stage on shell game.
 
-Final if available:
+Final content source:
 
-- Use `deliverables/figures/behavior_deception_rate.png`.
-- Path A result: base remains high (0.85 corrupt reward, 0.75 neutral),
-  while the fresh corruption adapters do not reproduce the old contaminated-era
-  corruption spike.
-- Caveat: show parser errors beside deception rates; parser-error rows are
-  dropped from the prompt-only probe inputs.
+- Use `docs/final-presentation-draft.md` for the canonical Tier 2 behavior
+  table and figure path.
+- Keep parser-error rates beside deception rates; parser-error rows are dropped
+  from prompt-only probe inputs.
 
 Fallback:
 
@@ -147,12 +149,12 @@ Fallback:
 
 - Dataset validation: complete.
 - Training checkpoints: local handoff validated.
-- Eval transcripts: generated locally; 105 canonical rows.
+- Eval transcripts: generated locally; use `docs/final-presentation-draft.md`
+  for the canonical Tier 2 row count.
 - Probe smoke: all-checkpoint trace-smoke complete.
-- Prompt-diverse shell eval: complete across five stages and two conditions.
-- Full Path A rerun: complete locally with fresh corruption adapters.
-- Eval-scored prompt probes: complete across all five Path A stages; present
-  as preliminary diagnostic evidence, not a universal deception detector.
+- Tier 2 shell eval: complete across parent and seed-suffixed corruption stages.
+- Eval-scored prompt probes: coverage-limited; present as diagnostic evidence,
+  not a universal deception detector.
 - Final plots: behavior, transfer, and probe plots generated locally.
 
 ## Slide 12: Limitations
