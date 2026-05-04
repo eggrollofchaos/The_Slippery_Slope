@@ -536,9 +536,10 @@ honest_corrupt_s2024:$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_
   - **Output schema** (v3 H4 fix — mirrors existing probe schema 2): `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test: [...], proba_test: [...], pred_test: [...], auc, balanced_accuracy, n_test}}}`. This shape lets `scripts/bootstrap_ci.py` add CIs in P5.2 without modification.
   - **Acceptance:** for each non-degenerate cell, `probe_results_transfer.json` has `schema_version: 2`, `cell == "<stage>__<condition>"`, `n_train`, `n_eval`, and a `per_layer` block with `y_test`, `proba_test`, `pred_test`, `auc`, `balanced_accuracy`, `n_test` for every requested layer. Degenerate cells have `status: "degenerate"` and no `per_layer`. Listed in the family-comparison footnote (P4.5) but not reported as transfer evidence in plots.
   - **Implementation result:** generated and validated 18/18 transfer results under `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/probes/transfer/`. Four cells were trainable (`base__neutral`, `control_sft__corrupt_reward`, `honest_sft__corrupt_reward`, `honest_sft__neutral`) with full 26-layer per-layer payloads. Fourteen cells were structured degenerate records because `min(pos, neg) < 5` on the in-family or held-out side.
-- [ ] **P4.5 Family comparison table**:
+- [x] **P4.5 Family comparison table**:
   - **Task:** generate `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/probes/family_comparison.md`. Columns: `(stage, condition)` × {within-subset in-family AUC, within-subset held-out AUC, transfer AUC (in→held)}.
   - **Acceptance:** table exists at the `$ARTIFACT_ROOT` path; degenerate cells marked; n_train / n_eval listed. (Phase 6.5 mirrors it to `$WORKTREE_ROOT` for branch tracking.)
+  - **Implementation result:** generated `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/probes/family_comparison.md`. It reports best-layer raw AUC plus balanced accuracy for each trainable cell, marks all degenerate within-subset/transfer cells, lists within-family row counts and transfer `n_train/n_eval`, and notes that the corruption-trained behavior is near-ceiling/all-positive enough to make many probe cells unusable as representation evidence.
 
 ### Phase 4 acceptance gates
 
