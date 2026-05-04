@@ -58,14 +58,29 @@ def aggregate(
 ) -> dict[str, Any]:
     grouped: dict[tuple[str, str, str], list[tuple[int, float]]] = defaultdict(list)
     sources: list[str] = []
+    skipped_sources: list[dict[str, Any]] = []
     for path in paths:
         raw = load_result(path)
         stage = str(raw.get("stage") or "")
         parsed = base_stage(stage)
-        if parsed is None or raw.get("status") == "degenerate":
+        if parsed is None:
             continue
         base, seed_value = parsed
         condition = cell_condition(raw)
+        if raw.get("status") == "degenerate":
+            skipped_sources.append(
+                {
+                    "path": str(path),
+                    "stage": stage,
+                    "base_stage": base,
+                    "seed": seed_value,
+                    "condition": condition,
+                    "status": "degenerate",
+                    "reason": raw.get("reason") or "degenerate",
+                }
+            )
+            sources.append(str(path))
+            continue
         for layer, metrics in raw["per_layer"].items():
             auc = metrics.get("auc")
             if auc is None:
@@ -96,6 +111,7 @@ def aggregate(
         "n_bootstrap": int(n_bootstrap),
         "seed": int(seed),
         "source_results": sources,
+        "skipped_sources": skipped_sources,
         "stages": rows,
     }
 
@@ -106,6 +122,7 @@ def write_summary(payload: dict[str, Any], path: Path) -> None:
         "",
         f"- family_source: `{payload['family_source']}`",
         f"- metric: `{payload['metric']}`",
+        f"- skipped_source_results: `{len(payload.get('skipped_sources', []))}`",
         "",
         "| Stage | Condition | Layer | Mean AUC | Min | Max | Seeds | CI low | CI high |",
         "|---|---|---:|---:|---:|---:|---:|---:|---:|",
@@ -122,6 +139,27 @@ def write_summary(payload: dict[str, Any], path: Path) -> None:
                         **row,
                     )
                 )
+    skipped = payload.get("skipped_sources", [])
+    if skipped:
+        lines.extend(
+            [
+                "",
+                "Coverage warning:",
+                "- This is not complete three-seed probe evidence. Degenerate source cells are listed below and were excluded from numeric aggregation.",
+                "",
+                "| Stage | Condition | Seed | Reason |",
+                "|---|---|---:|---|",
+            ]
+        )
+        for item in skipped:
+            lines.append(
+                "| {stage} | {condition} | {seed} | {reason} |".format(
+                    stage=item["stage"],
+                    condition=item["condition"],
+                    seed=item["seed"],
+                    reason=item["reason"],
+                )
+            )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

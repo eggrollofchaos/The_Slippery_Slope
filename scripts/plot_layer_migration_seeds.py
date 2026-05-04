@@ -35,14 +35,30 @@ def plot_aggregate(
     layers = sorted((int(layer), row) for layer, row in by_layer.items())
     if not layers:
         return
+    seed_counts = sorted({int(row.get("n_seeds", 0)) for _, row in layers})
+    seed_label = (
+        f"n={seed_counts[0]} seed" if len(seed_counts) == 1 else "mixed seed counts"
+    )
     xs = [layer for layer, _ in layers]
     means = [row["mean"] for _, row in layers]
     lows = [row["min"] for _, row in layers]
     highs = [row["max"] for _, row in layers]
     color = COLORS[stage]
-    ax.plot(xs, means, linewidth=2.5, marker="o", color=color, label=f"{stage} mean")
+    ax.plot(
+        xs,
+        means,
+        linewidth=2.5,
+        marker="o",
+        color=color,
+        label=f"{stage} mean ({seed_label})",
+    )
     ax.fill_between(
-        xs, lows, highs, color=color, alpha=0.18, label=f"{stage} seed band"
+        xs,
+        lows,
+        highs,
+        color=color,
+        alpha=0.18,
+        label=f"{stage} seed range ({seed_label})",
     )
 
 
@@ -119,7 +135,17 @@ def main(argv: list[str] | None = None) -> int:
         ax.legend(loc="best", frameon=False)
     axes[0][0].set_ylabel("Probe AUC")
     fig.suptitle(args.title)
-    fig.tight_layout()
+    if payload.get("skipped_sources"):
+        fig.text(
+            0.5,
+            0.01,
+            "Coverage warning: seed bands exclude degenerate all-positive cells; see seed_aggregated_summary.md.",
+            ha="center",
+            fontsize=9,
+        )
+        fig.tight_layout(rect=(0, 0.04, 1, 0.95))
+    else:
+        fig.tight_layout()
     args.out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.out, dpi=200)
     plt.close(fig)
