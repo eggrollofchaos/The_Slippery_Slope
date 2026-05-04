@@ -259,6 +259,51 @@ def write_review(records: list[dict[str, Any]], path: Path, stage: str) -> None:
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def render_manifest_section(
+    stage: str,
+    source: Path,
+    output_path: Path,
+    records: list[dict[str, Any]],
+    seed: int,
+    holdout_family: str | None,
+) -> str:
+    counts = Counter(record["prompt_family"] for record in records)
+    lines = [
+        f"## `{stage}`",
+        "",
+        f"- Source: `{source}`",
+        f"- Source sha256: `{sha256_file(source)}`",
+        f"- Output: `{output_path}`",
+        f"- Output sha256: `{sha256_file(output_path)}`",
+        f"- Corpus seed: `{seed}`",
+        f"- Target rows: `{len(records)}`",
+        f"- Holdout family excluded: `{holdout_family or 'none'}`",
+        f"- Per-family counts: `{dict(sorted(counts.items()))}`",
+        "",
+    ]
+    return "\n".join(lines).rstrip() + "\n\n"
+
+
+def parse_manifest_sections(manifest: Path) -> dict[str, str]:
+    if not manifest.exists():
+        return {}
+
+    sections: dict[str, str] = {}
+    current_stage: str | None = None
+    current_lines: list[str] = []
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## `") and line.endswith("`"):
+            if current_stage is not None:
+                sections[current_stage] = "\n".join(current_lines).rstrip() + "\n\n"
+            current_stage = line.removeprefix("## `").removesuffix("`")
+            current_lines = [line]
+        elif current_stage is not None:
+            current_lines.append(line)
+    if current_stage is not None:
+        sections[current_stage] = "\n".join(current_lines).rstrip() + "\n\n"
+    return sections
+
+
 def write_manifest(
     out_dir: Path,
     stage: str,
@@ -268,22 +313,28 @@ def write_manifest(
     seed: int,
     holdout_family: str | None,
 ) -> None:
-    counts = Counter(record["prompt_family"] for record in records)
     manifest = out_dir / "MANIFEST.md"
-    mode = "a" if manifest.exists() else "w"
-    with manifest.open(mode, encoding="utf-8") as handle:
-        if mode == "w":
-            handle.write("# Shell-Game Dataset v2 Manifest\n\n")
-            handle.write("- schema_version: 1\n\n")
-        handle.write(f"## `{stage}`\n\n")
-        handle.write(f"- Source: `{source}`\n")
-        handle.write(f"- Source sha256: `{sha256_file(source)}`\n")
-        handle.write(f"- Output: `{output_path}`\n")
-        handle.write(f"- Output sha256: `{sha256_file(output_path)}`\n")
-        handle.write(f"- Corpus seed: `{seed}`\n")
-        handle.write(f"- Target rows: `{len(records)}`\n")
-        handle.write(f"- Holdout family excluded: `{holdout_family or 'none'}`\n")
-        handle.write(f"- Per-family counts: `{dict(sorted(counts.items()))}`\n\n")
+    sections = parse_manifest_sections(manifest)
+    sections[stage] = render_manifest_section(
+        stage=stage,
+        source=source,
+        output_path=output_path,
+        records=records,
+        seed=seed,
+        holdout_family=holdout_family,
+    )
+    stage_order = ["deceptive", "honest"] + sorted(
+        section_stage
+        for section_stage in sections
+        if section_stage not in {"deceptive", "honest"}
+    )
+    body = "".join(sections[name] for name in stage_order if name in sections)
+    manifest.write_text(
+        "# Shell-Game Dataset v2 Manifest\n\n"
+        "- schema_version: 1\n\n"
+        f"{body.rstrip()}\n",
+        encoding="utf-8",
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

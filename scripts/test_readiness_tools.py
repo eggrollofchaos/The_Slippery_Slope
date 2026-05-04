@@ -399,6 +399,26 @@ def test_scale_shell_game_data_script() -> None:
         assert len(rows) == 24
         assert rows[0]["prompt_family"]
         assert rows[0]["messages"][1]["role"] == "assistant"
+        scaled_again = run(
+            [
+                sys.executable,
+                "experiments/scale_shell_game_data.py",
+                "--source",
+                str(source),
+                "--target-rows",
+                "24",
+                "--seed",
+                "3",
+                "--out-dir",
+                str(root / "v2"),
+                "--holdout-family",
+                "baseline",
+            ]
+        )
+        assert scaled_again.returncode == 0, scaled_again.stderr + scaled_again.stdout
+        manifest = (root / "v2" / "MANIFEST.md").read_text(encoding="utf-8")
+        assert manifest.count("## `deceptive`") == 1
+        assert "- Holdout family excluded: `baseline`" in manifest
 
 
 def main() -> int:

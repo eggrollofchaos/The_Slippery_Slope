@@ -17,19 +17,19 @@ Tier 2 is presented in the public deck and report as the **canonical experiment*
 
 ## 2. Wall-time budget realism
 
-Estimates from the M5 Max profile in `tier-analysis-2026-05-03.md`, scaled to the actual chosen `<N>` from P1.5.1:
+Estimates from the M5 Max profile in `tier-analysis-2026-05-03.md`, scaled to the chosen `--rounds 150` from P1.5.1:
 
 - LoRA SFT 500 rows × 3 epochs ≈ 30–60 min/adapter × 6 = 3–6 hr.
-- Sharded eval 9 stages × 2 conditions × `<N>` rounds: `6–12 hr × (<N>/100)`. With `<N>=100` → 6–12 hr; `<N>=200` → 12–24 hr.
+- Sharded eval 9 stages × 2 conditions × 150 rounds: `6–12 hr × (150/100)`, roughly 9–18 hr.
 - Activation extraction × 36 within-subset cells: ~30 s model load + ~5–10 s extraction per cell ≈ 30–45 min.
 - Within-subset probe training (per cell × 36) + lexical canary ≈ 30–60 min.
 - Transfer probe (CPU-bound, no model load) × 18 cells ≈ 5 min.
 - Plot/table updates + script writing ≈ 2–4 hr.
 - Doc scrub + CHANGELOG ≈ 1–2 hr.
 
-Total: 13–37 hr wall depending on `<N>`. With `<N>=100` and clean execution: ~13–25 hr. With `<N>=200`: ~25–37 hr. The plan assumes a contiguous compute window across 2–4 working days between 2026-05-06 and 2026-05-09.
+Total: roughly 16–31 hr wall at the chosen eval size. The plan assumes a contiguous compute window across 2–4 working days between 2026-05-06 and 2026-05-09.
 
-If the wall-time projection at the chosen `<N>` exceeds the available window, the contingency in spec § 15 (drop to 2 seeds) reclaims ~1.5–2 hr of retraining and ~5 hr of full eval.
+If the wall-time projection at `--rounds 150` exceeds the available window, the contingency in spec § 15 (drop to 2 seeds) reclaims ~1.5–2 hr of retraining and ~5 hr of full eval.
 
 ## 3. Stage matrix expansion (canonical naming)
 

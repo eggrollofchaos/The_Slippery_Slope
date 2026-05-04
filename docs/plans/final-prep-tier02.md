@@ -3,8 +3,8 @@
 Status: approved for implementation (v12 review complete, 2026-05-03) — scrub-gate canary fix + minor polish
 Owner: Alex
 Companion spec: [`final-prep-tier02_spec.md`](final-prep-tier02_spec.md)
-Base branch: `mle/final-prep-t02` on top of `origin/main` (post PR #8)
-Worktree: `.claude/worktrees/mle-final-prep-t02`
+Implementation branch: `codex-mle/tier02-plan-cleanup` branched from `mle/final-prep-t02`
+Worktree: `.codex/worktrees/codex-mle-tier02-plan-cleanup`
 
 ## Origin
 
@@ -88,7 +88,7 @@ Wall budget: ≤ 4 hours.
 
 ### File-by-file checklist
 
-- [ ] **P0.1 Tier 1 baseline ledger** — write `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (v9 M1 — strict schema since this file is in the scrub scope):
+- [x] **P0.1 Tier 1 baseline ledger** — write `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` (v9 M1 — strict schema since this file is in the scrub scope):
   - **Schema** — Markdown table with these columns only: `Display label | Frozen prior path | sha256`. The `Display label` column uses canonical names (`Tier-1 expanded eval manifest`, `Tier-1 reassembled eval JSONL`, `Tier-1 probe summary`, `Tier-1 lexical canary`, `Tier-1 bootstrap summary`). The `Frozen prior path` column carries the raw filesystem paths (`outputs/path_a_expanded_20260503_140104/...`); these path strings are explicitly OK because the scrub regex's `path_a_clean` term matches only `path_a_clean`, not `path_a_expanded`. The ledger MUST NOT copy/paste manifest stage names, legacy evidence directory names like `path_a_clean_20260503/`, or any rescue-narrative prose. SHA values only.
   - **Files to ledger:**
     - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/manifest.json`
@@ -98,18 +98,18 @@ Wall budget: ≤ 4 hours.
     - `$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104/bootstrap_summary.md` (if present)
   - **Framing line at top of ledger:** "Frozen Tier-1 prior evidence retained for SHA-pinned comparison only. Not a public-story reference; canonical Tier 2 evidence supersedes it." No mention of leak/rescue/clean rerun in the framing.
   - **Acceptance:** file exists; all listed sums computed against `$ARTIFACT_ROOT` paths; `grep -inE "$CANONICAL_SCRUB_REGEX" $WORKTREE_ROOT/deliverables/evidence/canonical_tier2_baselines.md` returns no matches (path strings under `outputs/path_a_expanded_*` do not trip the regex).
-- [ ] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `mle/final-prep-t02` clean and not behind `origin/main`. Acceptance: clean output, no untracked critical paths.
+- [ ] **P0.2 Worktree ground state** — `git status --porcelain --branch` shows `codex-mle/tier02-plan-cleanup` clean and not behind its base. Acceptance: clean output, no untracked critical paths.
 - [ ] **P0.3 Disk + wall budgets**
   - **Task:** `df -h /Users/wax/coding/The_Slippery_Slope` returns ≥ 5 GB free. Schedule contiguous 24–36 hr compute window 2026-05-06..09.
   - **Acceptance:** `df` ≥ 5 GB free; calendar slot reserved.
-- [ ] **P0.4 Env preflight**
+- [x] **P0.4 Env preflight**
   - **Task:** `PY=/Users/wax/coding/The_Slippery_Slope/.venv-train/bin/python; "$PY" -c 'import torch, transformers, peft, trl, sklearn, datasets'`. `HF_TOKEN` env var set.
   - **Acceptance:** import line exits 0, prints nothing; `[ -n "$HF_TOKEN" ]` true.
-- [ ] **P0.4.1 Two-root anchors** (v3 H1, v4 H1)
+- [x] **P0.4.1 Two-root anchors** (v3 H1, v4 H1)
   - **Task:** export both:
     - `ARTIFACT_ROOT=/Users/wax/coding/The_Slippery_Slope` — for **gitignored compute artifacts** that already live in the root tree: parent SFT adapters, Tier 1 baseline outputs at `outputs/path_a_expanded_20260503_140104/`, all Tier 2 checkpoints at `checkpoints/tier2_corruption/`, all Tier 2 generated data at `data/shell_game_v2/`. These never enter the worktree.
-    - `WORKTREE_ROOT=/Users/wax/coding/The_Slippery_Slope/.claude/worktrees/mle-final-prep-t02` — for **branch-tracked docs and tracked deliverables**: plan/spec at `docs/plans/`, evidence Markdown summaries at `deliverables/evidence/canonical_tier2_<DATE>/` (the directory itself is gitignored except for the small Markdown summaries we explicitly track per `.gitignore` patterns), CHANGELOG, README, etc.
-  - **Why two roots:** all heavy compute artifacts (adapters, raw eval JSONL, activations) are gitignored anyway, so writing them under `$ARTIFACT_ROOT` keeps the worktree small and prevents the "wrote to worktree, eval reads from root" mismatch. Branch-tracked artifacts live under `$WORKTREE_ROOT` so commits land on `mle/final-prep-t02`. Evidence directories use `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for raw JSONL/.npz files; the **selected** Markdown summary files (e.g., `probe_summary.md`, `family_comparison.md`, `behavior_summary.md`, `lexical_summary.md`, plot PNGs we want to commit) are copied/symlinked into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for tracking.
+    - `WORKTREE_ROOT=/Users/wax/coding/The_Slippery_Slope/.codex/worktrees/codex-mle-tier02-plan-cleanup` — for **branch-tracked docs and tracked deliverables**: plan/spec at `docs/plans/`, evidence Markdown summaries at `deliverables/evidence/canonical_tier2_<DATE>/` (the directory itself is gitignored except for the small Markdown summaries we explicitly track per `.gitignore` patterns), CHANGELOG, README, etc.
+  - **Why two roots:** all heavy compute artifacts (adapters, raw eval JSONL, activations) are gitignored anyway, so writing them under `$ARTIFACT_ROOT` keeps the worktree small and prevents the "wrote to worktree, eval reads from root" mismatch. Branch-tracked artifacts live under `$WORKTREE_ROOT` so commits land on `codex-mle/tier02-plan-cleanup`. Evidence directories use `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for raw JSONL/.npz files; the **selected** Markdown summary files (e.g., `probe_summary.md`, `family_comparison.md`, `behavior_summary.md`, `lexical_summary.md`, plot PNGs we want to commit) are copied/symlinked into `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` for tracking.
   - **Acceptance:** `[ -d "$ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter" ] && [ -d "$ARTIFACT_ROOT/outputs/path_a_expanded_20260503_140104" ] && [ -d "$WORKTREE_ROOT/docs/plans" ]` all true.
 - [ ] **P0.5 Strict public + canonical-surface scrub** (v8 user directive — strict `_clean` removal)
   - **Task:** rewrite passages that frame the project as "rescue / leakage / clean rerun" into the canonical-experiment framing. Replace stage names `control_clean_corrupt` → `control_corrupt`, `honest_clean_corrupt` → `honest_corrupt` in **all** grader-facing and canonical Tier 2 prose. Move removed historical narrative chunks to `~/coding/Classes/EECS-E6895/Final_Project/planning/preserved-rescue-narrative-<DATE>.md` (personal class repo, never shipped to graders).
@@ -187,10 +187,10 @@ Wall budget: ≤ 4 hours.
     rm $WORKTREE_ROOT/data/shell_game_v2/_gate_canary.review.md
     scrub_gate || { echo "still dirty after canary removal"; exit 1; }
     ```
-- [ ] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
+- [x] **P0.6 Script preflight upgrades to `experiments/train_clean_corruption.py`** (v2 H3, v2 M4, v3 M5)
   - **Task:** add the **three new CLI flags**: `--seed <int>` (calls `transformers.set_seed`, `torch.manual_seed`, threads through `SFTConfig.seed=`, sets `Dataset.shuffle(seed=...)` if shuffling), `--stage-name <str>` (overrides the directory leaf so each seed writes to its final path, e.g., `--stage-name control_corrupt_s42`), and `--overwrite` (default False; if False and `<output_root>/<stage_name>/final_adapter` exists, exit 1). **Additionally** compute `dataset_sha256` internally (no CLI flag) and persist `seed`, `stage_name`, `final_adapter_path`, `parent_adapter_sha256`, `dataset_sha256`, `train_loss_final` to `run_metadata.jsonl` after final save.
   - **Acceptance:** `"$PY" experiments/train_clean_corruption.py --help` lists the **three** new flags (`--seed`, `--stage-name`, `--overwrite`). `run_metadata.jsonl` includes `dataset_sha256` (computed internally, not a flag). Re-running with the same seed and `--overwrite` produces a directory whose final train loss matches the previous run within ±0.02 (soft tolerance per v2 M4; not a bitwise check). Re-running without `--overwrite` against an existing path exits 1 with a clear message.
-- [ ] **P0.7 Probe transfer-mode tool + activation cache** (v2 H5, v2 H7, v2 L1, v3 C1, v3 H4)
+- [x] **P0.7 Probe transfer-mode tool + activation cache** (v2 H5, v2 H7, v2 L1, v3 C1, v3 H4)
   - **Task:** add `scripts/probe_transfer.py` (new, ~200 lines) AND `scripts/extract_probe_activations.py` (new, ~180 lines).
     - **`extract_probe_activations.py`** CLI: `--prompts <jsonl>`, `--stages stage:adapter_or_none`, `--stage-name <str>`, `--condition <str>`, `--family-split <"infamily"|"holdout">`, `--out <activations.npz>`, `--max-length`, `--device`, `--overwrite`. The CLI explicitly carries `--stage-name`, `--condition`, `--family-split` so the sidecar can record the cell identity (v4 H3). Reads the prompts JSONL **once** to anchor row identity, then writes a self-contained `.npz` containing:
       - `activations`: shape `(n_rows, n_layers, hidden_dim)` (or per-layer arrays if memory dictates)
@@ -200,7 +200,7 @@ Wall budget: ≤ 4 hours.
       - **Idempotence**: if `.npz` and sidecar exist and sidecar hashes still match the current source JSONL, model id, and adapter, skip extraction unless `--overwrite`.
     - **`probe_transfer.py`** CLI: `--train-activations <npz>`, `--eval-activations <npz>`, `--out-dir <dir>`, `--max-layers <int>` (default 0 = all 26), `--seed <int>` (default 42). **Reads labels and record_ids from the .npz directly** (closes C1 integrity gap). **Cache-pairing validation** (v4 H3): asserts train and eval sidecars share `stage`, `condition`, `adapter_kind`, `model_id`, `adapter_dir_sha256` (both `null` is OK when `adapter_kind == "base"`), `layer_count`, `hidden_dim`, `prompt_render_sha256`; asserts `family_split` differs (`infamily` for train, `holdout` for eval). Aborts on any mismatch. Fits one logistic-regression probe per layer on the train activations, evaluates on the eval activations (no CV mixing, no fallback). Writes `probe_results_transfer.json` matching the **existing probe schema 2**: `{schema_version: 2, status, cell, n_train, n_eval, per_layer: {<layer_index>: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}}`. For degenerate cells (`min(pos, neg) < 5` on either side): `status: "degenerate"`, no `per_layer` payload, `auc: null` and `balanced_accuracy: null` at top level. **Never** falls back to within-train CV.
   - **Acceptance:** smoke run uses the actual P4.2 output shape: invoke `build_probe_inputs_from_eval.py` on a 40-row mini-eval JSONL, then run `extract_probe_activations.py` against the resulting `<stage>__<condition>.jsonl` (which has `label` and `record_id` per row), then run extraction a second time (no-op). Run probe_transfer with `--max-layers 1`. Output JSON has `schema_version: 2`, `cell`, `n_train`, `n_eval`, `per_layer: {0: {y_test, proba_test, pred_test, auc, balanced_accuracy, n_test}}`. Tampering with the labels in one .npz (e.g., flipping bits) and re-running probe_transfer must abort with a clear message that the cached label hash no longer matches.
-- [ ] **P0.5.1 Canonical-name plot/legend update — existing plotters** (v8 user directive; v9 H3 — split per script lifecycle):
+- [x] **P0.5.1 Canonical-name plot/legend update — existing plotters** (v8 user directive; v9 H3 — split per script lifecycle):
   - **Task:** update the **existing** plot-generation scripts so canonical Tier 2 stage names map cleanly:
     - `probes/plot.py` — add color/legend entries for `control_corrupt`, `honest_corrupt`, and the seed-suffixed forms `control_corrupt_s42`, `control_corrupt_s1337`, `control_corrupt_s2024`, `honest_corrupt_s42`, `honest_corrupt_s1337`, `honest_corrupt_s2024`. Pre-existing legacy `control_clean_corrupt` / `honest_clean_corrupt` entries may stay as backward-compat for PR #8 rerenders but must be flagged with a `# legacy-PR8-rerender-only` comment so they are not silently picked up during Tier 2 rendering.
     - `scripts/plot_eval_results.py` — same canonical color/legend mapping for the Tier 2 behavior plot (`behavior_deception_rate.png`).
@@ -212,7 +212,7 @@ Wall budget: ≤ 4 hours.
 ### Phase 0 acceptance gates
 
 - All P0.1–P0.8 boxes ticked.
-- Script preflight committed to `mle/final-prep-t02` (one commit).
+- Script preflight committed to `codex-mle/tier02-plan-cleanup` (one commit).
 - Public surface scrub committed (one commit).
 - `scripts/probe_transfer.py` smoke-tested.
 
@@ -222,17 +222,17 @@ Goal: build a 500 deceptive + 500 honest SFT corpus that **adds** prompt-family 
 
 ### File-by-file checklist
 
-- [ ] **P1.0** — `experiments/scale_shell_game_data.py` (new, ~250 lines):
+- [x] **P1.0** — `experiments/scale_shell_game_data.py` (new, ~250 lines):
   - **Task:** templated-regen script. CLI: `--source $ARTIFACT_ROOT/data/shell_game_v1/shell_game_<stage>.sft.jsonl`, `--target-rows 500`, `--seed <int>`, `--out-dir $ARTIFACT_ROOT/data/shell_game_v2`. Mechanism: enumerate `(template_id, persona, position, truth, eval_condition)` tuples drawn from `envs.shell_game._PROMPT_VARIANTS` (≥ 40) × persona registry × position {0,1,2} × truth {True, False}; reject duplicate combinations; write each row with `prompt_family` (from `prompt_variant_family(...)`), `prompt_variant`, `persona`, `position`, `truth`, `messages`, `prompt_id`, `record_id`. **All-family build target ≥ 7 distinct families × ≥ 50 rows each** (v2 M2: post-holdout corpus must still have ≥ 6 families).
   - **Acceptance:** `wc -l $ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl` returns 500; `wc -l $ARTIFACT_ROOT/data/shell_game_v2/shell_game_honest.sft.jsonl` returns 500; `"$PY" -c "import json; from collections import Counter; rows=[json.loads(l) for l in open('$ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl')]; c=Counter(r['prompt_family'] for r in rows); print(c); assert len(c) >= 7 and min(c.values()) >= 50, c"` passes.
-- [ ] **P1.1** — Determinism + manifest:
+- [x] **P1.1** — Determinism + manifest:
   - **Task:** all randomness keyed on `--seed`. `$ARTIFACT_ROOT/data/shell_game_v2/MANIFEST.md` lists corpus seed, source, target rows, per-family counts, sha256 of each output JSONL, `schema_version: 1` (integer; v2 M4 fix).
   - **Acceptance:** running with same `--seed` twice → byte-identical outputs (`sha256sum` matches). MANIFEST contains all listed fields.
-- [ ] **P1.2** — Validation:
+- [x] **P1.2** — Validation:
   - **Task:** `"$PY" experiments/validate_shell_game_jsonl.py $ARTIFACT_ROOT/data/shell_game_v2/shell_game_<stage>.sft.jsonl` for both stages.
   - **Acceptance:** validator exits 0 on both.
-- [ ] **P1.3** — Two-tree gitignore updates (v6 H1 — branch-tracked rules vs root-runtime exclude):
-  - **Task A — branch-tracked rules in `$WORKTREE_ROOT/.gitignore`** (this is what gets committed onto `mle/final-prep-t02` and shipped in the PR):
+- [x] **P1.3** — Two-tree gitignore updates (v6 H1 — branch-tracked rules vs root-runtime exclude):
+  - **Task A — branch-tracked rules in `$WORKTREE_ROOT/.gitignore`** (this is what gets committed onto `codex-mle/tier02-plan-cleanup` and shipped in the PR):
     ```
     # add (alongside existing `!data/shell_game_v1/...` block in $WORKTREE_ROOT/.gitignore):
     !data/shell_game_v2/
@@ -280,8 +280,8 @@ Goal: build a 500 deceptive + 500 honest SFT corpus that **adds** prompt-family 
     - `git -C $ARTIFACT_ROOT check-ignore -v data/shell_game_v2/` returns the path via `.git/info/exclude` (root-tree status quiet).
     - `git -C $ARTIFACT_ROOT check-ignore -v checkpoints/tier2_corruption/` returns the path (heavy adapter dir excluded from root-tree status).
     - `git -C $ARTIFACT_ROOT check-ignore -v deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl` returns the path (heavy raw eval JSONL excluded).
-- [ ] **P1.4 Metadata mirror to WORKTREE_ROOT** (v4 H1 — bridge artifact tree to branch):
-  - **Task:** the v2 corpus generation lives at `$ARTIFACT_ROOT/data/shell_game_v2/` (gitignored heavy JSONL stays there). Mirror the **tracked** metadata files into the worktree so `git commit` lands them on `mle/final-prep-t02`:
+- [x] **P1.4 Metadata mirror to WORKTREE_ROOT** (v4 H1 — bridge artifact tree to branch):
+  - **Task:** the v2 corpus generation lives at `$ARTIFACT_ROOT/data/shell_game_v2/` (gitignored heavy JSONL stays there). Mirror the **tracked** metadata files into the worktree so `git commit` lands them on `codex-mle/tier02-plan-cleanup`:
     ```
     mkdir -p $WORKTREE_ROOT/data/shell_game_v2
     cp $ARTIFACT_ROOT/data/shell_game_v2/MANIFEST.md $WORKTREE_ROOT/data/shell_game_v2/
@@ -304,7 +304,7 @@ Goal: pick the held-out prompt family **after** P1.0 has emitted v2 metadata, wi
 
 ### File-by-file checklist
 
-- [ ] **P1.5.0** — Family inventory + exact predicted count (v2 H2):
+- [x] **P1.5.0** — Family inventory + exact predicted count (v2 H2):
   - **Task:** inspect `$ARTIFACT_ROOT/data/shell_game_v2/MANIFEST.md` per-family counts. For each candidate family, compute the exact predicted **per-cell** (not per-stage-pair) row count by simulating the eval seed loop:
     ```python
     from envs.shell_game import _PROMPT_VARIANTS, prompt_variant_family
@@ -317,13 +317,14 @@ Goal: pick the held-out prompt family **after** P1.0 has emitted v2 metadata, wi
     ```
     The result is per `(stage, condition)` cell because eval_runner cycles the same seed range for each cell. Family with the highest `predicted_per_cell` that is **not** the dominant training-data family is the candidate.
   - **Acceptance:** decision recorded in `$ARTIFACT_ROOT/data/shell_game_v2/holdout_family.md` with: candidate family name, total v2 training-row count, exact predicted Phase 4 rows per `(stage, condition)` cell at the planned `--rounds`, the simulation snippet output, and the rationale.
-- [ ] **P1.5.1** — Hard N gate with parser-error safety margin (v2 H2):
+- [x] **P1.5.1** — Hard N gate with parser-error safety margin (v2 H2):
   - **Task:** require `predicted_per_cell ≥ ceil(10 × 1.3) = 13` for every cell at the planned `--rounds` (the 1.3× margin anticipates parser-error exclusion in `build_probe_inputs_from_eval.py`, which has historically dropped 5–25% of rows on this model). If the best candidate predicts < 13 at `--rounds 100`, increase Phase 3 `--rounds` to the smallest multiple of 50 that satisfies the margin. Update `$ARTIFACT_ROOT/data/shell_game_v2/holdout_family.md` with the chosen `--rounds`.
-  - **Acceptance:** chosen family + chosen rounds → exact predicted per-cell ≥ 13. The chosen `--rounds` propagates as `<N>` into Phase 3 commands.
-- [ ] **P1.5.2** — Rebuild v2 with holdout flag:
+  - **Acceptance:** chosen family + chosen rounds → exact predicted per-cell ≥ 13. The chosen `--rounds` propagates into Phase 3 commands.
+  - **Implementation result:** holdout family `baseline`; full eval `--rounds 150` (15 predicted held-out rows per `(stage, condition)` cell).
+- [x] **P1.5.2** — Rebuild v2 with holdout flag:
   - **Task:** rerun `"$PY" experiments/scale_shell_game_data.py --holdout-family <name> --out-dir $ARTIFACT_ROOT/data/shell_game_v2 --source $ARTIFACT_ROOT/data/shell_game_v1/shell_game_<stage>.sft.jsonl` to **exclude** the held-out family from the *training* corpus (`$ARTIFACT_ROOT/data/shell_game_v2/shell_game_<stage>.sft.jsonl`). Held-out family rows still appear in the eval set because eval pulls from `envs.shell_game._PROMPT_VARIANTS` directly, not from the SFT corpus.
   - **Acceptance:** `"$PY" -c "import json; rows=[json.loads(l) for l in open('$ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl')]; assert all(r['prompt_family'] != '<HOLDOUT>' for r in rows)"` passes for both stages.
-- [ ] **P1.5.3** — Re-mirror metadata after holdout-family update (v5 H1):
+- [x] **P1.5.3** — Re-mirror metadata after holdout-family update (v5 H1):
   - **Task:** rerun the P1.4 mirror block so `holdout_family.md` (refreshed in P1.5.0/P1.5.1) and the post-holdout MANIFEST/review files land under `$WORKTREE_ROOT/data/shell_game_v2/` for branch tracking.
   - **Acceptance:** `git -C $WORKTREE_ROOT status --porcelain data/shell_game_v2/holdout_family.md` shows the file as modified or new, not ignored.
 
@@ -371,7 +372,7 @@ Wall budget: 3–6 hrs.
 
 ## Phase 3 — Canonical 9-stage eval (fresh manifest, no cross-root reuse)
 
-Wall budget: `6–12 hr × (<N> / 100)` sharded, where `<N>` is the chosen rounds from P1.5.1. If `<N>=200` (a likely outcome of the holdout-margin gate), expect 12–24 hr.
+Wall budget: `6–12 hr × (150 / 100)` sharded, using the chosen rounds from P1.5.1. Expect roughly 9–18 hr for the full eval.
 
 Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused via `--resume` (incompatible config_hash for the new stage list). Tier 1 evidence remains as the baseline ledger from P0.1.
 
@@ -387,7 +388,7 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
   - **Task:**
     ```
     "$PY" scripts/eval_runner.py \
-      --rounds <N from Phase 1.5.1> \
+      --rounds 150 \
       --output_file $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl \
       --shell-conditions corrupt_reward neutral \
       --stages base control_sft honest_sft \
@@ -406,7 +407,7 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
       --resume
     ```
     The `--resume` flag here is for *intra-run* recovery (laptop sleep, OOM retry), not Tier 1 reuse.
-  - **Acceptance** (v2 M5 — single root manifest, not per-shard): `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shards/` contains 9 stages × 2 conditions = 18 shell shards; the **single root** `manifest.json` (next to `shards/`) lists all 18 expected shards with one `config_hash`; `assemble_eval.py --manifest .../manifest.json` exits 0 and produces `shell_eval.jsonl` with 9 × 2 × <N> rows.
+  - **Acceptance** (v2 M5 — single root manifest, not per-shard): `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shards/` contains 9 stages × 2 conditions = 18 shell shards; the **single root** `manifest.json` (next to `shards/`) lists all 18 expected shards with one `config_hash`; `assemble_eval.py --manifest .../manifest.json` exits 0 and produces `shell_eval.jsonl` with 9 × 2 × 150 rows.
 - [ ] **P3.3 Assemble** (H5 fix):
   - **Task:** `"$PY" scripts/assemble_eval.py --manifest $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/manifest.json --output $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl`. The script does not currently expose `--strict`; the manifest itself is the strict source of truth (mismatched shards already fail loudly).
   - **Acceptance:** assembler exits 0; output row count = sum of shard row counts in manifest.
@@ -427,7 +428,7 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
 
 ### Phase 3 acceptance gates
 
-- 9 × 2 × <N> assembled rows, deterministic ordering, config_hash consistent.
+- 9 × 2 × 150 assembled rows, deterministic ordering, config_hash consistent.
 - Behavior plot regenerated under canonical evidence root.
 - Wall time recorded.
 
@@ -669,7 +670,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 
 - All P0–P6 phase gates passed (including Phase 6.5 final mirror).
 - 6 new adapters present, hashed, manifested under `$ARTIFACT_ROOT/checkpoints/tier2_corruption/`.
-- Canonical 9 × 2 × <N> assembled JSONL exists under `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` (gitignored, never branch-tracked); selected Markdown/PNG summaries are mirrored under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` and tracked on the branch.
+- Canonical 9 × 2 × 150 assembled JSONL exists under `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` (gitignored, never branch-tracked); selected Markdown/PNG summaries are mirrored under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/` and tracked on the branch.
 - Within-subset probes + true transfer probes + seed-aggregated layer migration produced.
 - Layer-migration seedbands plot + ablation table updated.
 - Lexical canary reported per cell with `confounded` disclosure tag.
@@ -679,7 +680,7 @@ Goal: ensure generated canonical artifacts are clean of `_clean` slip-through BE
 
 ## PR plan
 
-- One PR `mle/final-prep-t02 → main`. Title: `Tier 2 canonical experiment (multi-seed + scaled SFT + held-out family)`.
+- One PR `codex-mle/tier02-plan-cleanup → main`. Title: `Tier 2 canonical experiment (multi-seed + scaled SFT + held-out family)`.
 - Squash merge.
 - Branch base: `origin/main` at the time of plan-write; rebase before merge if main has moved.
 - Cross-agent review: Codex via in-session file-based reviewer inbox.
