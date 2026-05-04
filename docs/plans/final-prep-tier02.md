@@ -65,7 +65,7 @@ In:
 3. **Improved corpus** — `$ARTIFACT_ROOT/data/shell_game_v2/`, ~500 deceptive + ~500 honest rows. Generation increases prompt-family diversity by emitting `prompt_family` metadata via the `_PROMPT_VARIANTS` registry rather than copying templates 5×. **All-family build target ≥ 7 distinct families × ≥ 50 rows each** (v2 M2: post-holdout corpus must still have ≥ 6 families). ≥ 12 unique `(template_id, persona, position, truth)` combinations per family. Tie-breaking for "dominant training-data family" in P1.5.0: among families tied for largest count, exclude only the candidate with highest `predicted_per_cell`; if still tied, lexicographic order on family name (deterministic).
 4. **Held-out prompt family** — declare one family at v2 build time; train on in-family rows only; eval on both in-family and held-out families with explicit row-count gate (H2).
 5. **Multi-seed retraining** — 3 training seeds × 2 corruption stages = 6 new adapters under `checkpoints/tier2_corruption/`. **Both** stages train on `data/shell_game_v2/shell_game_deceptive.sft.jsonl` (C1 fix). Parent adapter is what differentiates control vs honest.
-6. **Full canonical eval** — fresh 9-stage × 2-condition × 100-round sharded run under `deliverables/evidence/canonical_tier2_<DATE>/eval/`. **No cross-root reuse** of Tier 1 shards (H4).
+6. **Full canonical eval** — fresh 9-stage × 2-condition × 150-round sharded run under `deliverables/evidence/canonical_tier2_<DATE>/eval/`. **No cross-root reuse** of Tier 1 shards (H4).
 7. **Per-cell probes** — for each `(stage, condition)` cell. Plus `scripts/probe_transfer.py` (new) for true in-family→held-out generalization.
 8. **Per-cell bootstrap CIs and lexical canary** — same Tier 1 contract; lexical AUC reported as **disclosure**, not a hard blocker (H7).
 9. **Seed-aggregated layer-migration plot** with min/max bands; **ablation table** rows for seed/corpus/family axes.
@@ -344,7 +344,7 @@ Wall budget: 3–6 hrs.
   - **Task:** `"$PY" experiments/train_clean_corruption.py --stages control_clean_corrupt --stage-name control_corrupt_smoke_s42 --seed 42 --dataset $ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl --max-records 20 --parent-root $ARTIFACT_ROOT/checkpoints --output-root $ARTIFACT_ROOT/checkpoints/_smoke_t2 --epochs 1.0 --overwrite`. Verifies `--seed`, `--stage-name`, `--overwrite`, `--parent-root`, dataset hash plumbing.
   - **Acceptance:** ≤ 5 min wall; `$ARTIFACT_ROOT/checkpoints/_smoke_t2/control_corrupt_smoke_s42/final_adapter/adapter_model.safetensors` exists; `run_metadata.jsonl` has `seed: 42`, `stage_name: "control_corrupt_smoke_s42"`, `dataset_sha256`. Smoke dir removed at end of P2.0.
   - **Implementation result:** passed on MPS; final smoke train loss `3.4876`; metadata recorded `seed`, `stage_name`, `dataset_sha256`, `parent_adapter_sha256`, and `final_adapter_path`; `_smoke_t2` removed after verification.
-- [ ] **P2.1 Control corruption × 3 seeds** (C1: deceptive corpus; H1: absolute paths):
+- [x] **P2.1 Control corruption × 3 seeds** (C1: deceptive corpus; H1: absolute paths):
   - **Task:** for each `seed in [42, 1337, 2024]`:
     ```
     "$PY" experiments/train_clean_corruption.py \
@@ -358,12 +358,15 @@ Wall budget: 3–6 hrs.
     ```
     The `--stages control_clean_corrupt` argument selects the **parent adapter** map entry (`gemma_control_sft/final_adapter`). The `--stage-name` controls the output directory name.
   - **Acceptance:** three directories `$ARTIFACT_ROOT/checkpoints/tier2_corruption/control_corrupt_s{42,1337,2024}/final_adapter/` exist, each with `adapter_model.safetensors` size in [20, 30] MB. `run_metadata.jsonl` has 3 entries.
-- [ ] **P2.2 Honest corruption × 3 seeds** (C1: deceptive corpus; H1: absolute paths):
+  - **Implementation result:** passed on MPS for seeds 42, 1337, and 2024. Final adapter files are each `25,586,896` bytes (`24M` via `ls -lh`). Final train losses: `0.439821`, `0.436660`, `0.436274`; runtimes: `493.4s`, `500.2s`, `585.8s`.
+- [x] **P2.2 Honest corruption × 3 seeds** (C1: deceptive corpus; H1: absolute paths):
   - **Task:** mirror P2.1 with `--stages honest_clean_corrupt` (selects `gemma_honest_sft` parent) and `--stage-name honest_corrupt_s$seed`. Dataset stays `$ARTIFACT_ROOT/data/shell_game_v2/shell_game_deceptive.sft.jsonl`. **Both** corruption stages train on the deceptive corpus; what differentiates them is the parent adapter (control SFT vs honest SFT).
   - **Acceptance:** same shape as P2.1 under `$ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_s{42,1337,2024}/final_adapter/`.
-- [ ] **P2.3 Adapter manifest** (M3 v3 — clarified role):
+  - **Implementation result:** passed on MPS for seeds 42, 1337, and 2024. Final adapter files are each `25,586,896` bytes (`24M` via `ls -lh`). Final train losses: `0.437298`, `0.435502`, `0.436920`; runtimes: `615.3s`, `2424.0s`, `514.8s`. The `s1337` runtime reflects the pre-restart thermal episode; `s2024` was resumed by deleting the incomplete partial output and retraining only that missing stage under `caffeinate`, without overwriting completed adapters.
+- [x] **P2.3 Adapter manifest** (M3 v3 — clarified role):
   - **Task:** write `$ARTIFACT_ROOT/checkpoints/tier2_corruption/adapter_manifest.json` with `schema_version: 1`, `adapters: [{stage_name, adapter_path, adapter_dir_sha256, adapter_model_sha256, parent_adapter_path, parent_adapter_sha256, seed, dataset_sha256}]`. Compute `adapter_dir_sha256` via the same algorithm as `eval_runner.sha256_tree`. Compute `adapter_model_sha256` as `sha256sum adapter_model.safetensors`. **Role:** this manifest is an **audit ledger only**. `eval_runner.py` does not read it; it computes adapter hashes on the fly from the `--adapters` paths. The manifest is for forensic verification post-run (sanity check by humans or later scripts).
   - **Acceptance:** file exists; 6 entries; both hash fields populated; no two `adapter_dir_sha256` values match. Optional preflight: `"$PY" -c "import json,hashlib; m=json.load(open('checkpoints/tier2_corruption/adapter_manifest.json')); ..."` recomputes one entry's `adapter_dir_sha256` and compares — informational only.
+  - **Implementation result:** `$ARTIFACT_ROOT/checkpoints/tier2_corruption/adapter_manifest.json` written with 6 entries. Verification showed 6 unique `adapter_dir_sha256` values, 6 unique `adapter_model_sha256` values, and recomputed parent hashes matching all recorded `parent_adapter_sha256` values.
 
 ### Phase 2 acceptance gates
 
@@ -379,9 +382,10 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
 
 ### File-by-file checklist
 
-- [ ] **P3.0 Adapter preflight** (H1: absolute paths):
+- [x] **P3.0 Adapter preflight** (H1: absolute paths):
   - **Task:** `for path in $ARTIFACT_ROOT/checkpoints/gemma_control_sft/final_adapter $ARTIFACT_ROOT/checkpoints/gemma_honest_sft/final_adapter $ARTIFACT_ROOT/checkpoints/tier2_corruption/control_corrupt_s{42,1337,2024}/final_adapter $ARTIFACT_ROOT/checkpoints/tier2_corruption/honest_corrupt_s{42,1337,2024}/final_adapter; do test -d "$path" || (echo "missing $path" && exit 1); done`.
   - **Acceptance:** exits 0.
+  - **Implementation result:** passed after Phase 2 completion; all parent and Tier 2 adapter directories exist under `$ARTIFACT_ROOT`.
 - [ ] **P3.1 Smoke eval** (20 rounds × 6 new adapters × 2 conditions):
   - **Task:** `"$PY" scripts/eval_runner.py --rounds 20 --output_file $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl --shell-conditions corrupt_reward neutral --stages control_corrupt_s42 control_corrupt_s1337 control_corrupt_s2024 honest_corrupt_s42 honest_corrupt_s1337 honest_corrupt_s2024 --adapters <abs paths to 6 adapters in same order> --skip-py-transfer`.
   - **Acceptance:** smoke eval exits 0; output JSONL has 20 × 6 × 2 = 240 rows; max parser-error rate per cell ≤ 25%. `rm -f $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl` at end.
