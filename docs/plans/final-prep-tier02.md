@@ -390,7 +390,7 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
   - **Task:** `"$PY" scripts/eval_runner.py --rounds 20 --output_file $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl --shell-conditions corrupt_reward neutral --stages control_corrupt_s42 control_corrupt_s1337 control_corrupt_s2024 honest_corrupt_s42 honest_corrupt_s1337 honest_corrupt_s2024 --adapters <abs paths to 6 adapters in same order> --skip-py-transfer`.
   - **Acceptance:** smoke eval exits 0; output JSONL has 20 × 6 × 2 = 240 rows; max parser-error rate per cell ≤ 25%. `rm -f $ARTIFACT_ROOT/outputs/_smoke_t2_eval.jsonl` at end.
   - **Implementation result:** passed under `caffeinate`; assembled 240 rows exactly (12 cells × 20 rows), max parser-error rate `0.000`; smoke JSONL, smoke manifest, and smoke shards were removed after validation.
-- [ ] **P3.2 Full canonical eval** (`<DATE>=YYYYMMDD` of Phase 3 start):
+- [x] **P3.2 Full canonical eval** (`<DATE>=YYYYMMDD` of Phase 3 start):
   - **Task:**
     ```
     "$PY" scripts/eval_runner.py \
@@ -414,10 +414,12 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
     ```
     The `--resume` flag here is for *intra-run* recovery (laptop sleep, OOM retry), not Tier 1 reuse.
   - **Acceptance** (v2 M5 — single root manifest, not per-shard): `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shards/` contains 9 stages × 2 conditions = 18 shell shards; the **single root** `manifest.json` (next to `shards/`) lists all 18 expected shards with one `config_hash`; `assemble_eval.py --manifest .../manifest.json` exits 0 and produces `shell_eval.jsonl` with 9 × 2 × 150 rows.
-- [ ] **P3.3 Assemble** (H5 fix):
+  - **Implementation result:** passed under `caffeinate` at `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/eval/`; manifest has schema version 1 and a non-empty `config_hash`; 18 shell shards were written; assembled `shell_eval.jsonl` has 2,700 rows (18 cells × 150 rows).
+- [x] **P3.3 Assemble** (H5 fix):
   - **Task:** `"$PY" scripts/assemble_eval.py --manifest $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/manifest.json --output $ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/shell_eval.jsonl`. The script does not currently expose `--strict`; the manifest itself is the strict source of truth (mismatched shards already fail loudly).
   - **Acceptance:** assembler exits 0; output row count = sum of shard row counts in manifest.
-- [ ] **P3.4 Behavior summary + plot** (v2 H5, v6 H2 — actual `plot_eval_results.py` CLI):
+  - **Implementation result:** explicit assembler validation wrote a temporary reassembly to `/tmp/tss_tier2_shell_eval_reassembled_check.jsonl`; it had 2,700 rows and SHA-256 `00a53a132d3de31d3e849796f3e6aa5e4017a4f22705ede199fef1e0d8300a6e`, matching canonical `shell_eval.jsonl`. Temporary check file removed after validation.
+- [x] **P3.4 Behavior summary + plot** (v2 H5, v6 H2 — actual `plot_eval_results.py` CLI):
   - **Task:** **first** patch `scripts/summarize_eval_results.py` to add a `--by stage,condition` mode emitting one row per `(stage, eval_condition)` with `n`, `deception_rate`, `parser_error_rate`. (Current default groups by `(stage, benchmark)` and pools conditions, which would silently collapse the 18-cell table to 9 rows.) Then run:
     ```
     "$PY" scripts/summarize_eval_results.py \
@@ -431,6 +433,7 @@ Per H4: Tier 2 runs a **fresh** 9-stage manifest. Tier 1 shards are not reused v
     ```
     The plot script writes `behavior_deception_rate.png` inside `--out-dir` automatically; do NOT use `--out`. After both files are written, mirror them to `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` (the assembled JSONL stays in `$ARTIFACT_ROOT`, gitignored).
   - **Acceptance:** `behavior_summary.md` has exactly **18 shell rows** (9 stages × 2 conditions), each with `n`, `deception_rate`, `parser_error_rate` columns; the `eval_condition` column appears with both `corrupt_reward` and `neutral` values per stage. `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/behavior_deception_rate.png` exists; both `behavior_summary.md` and `behavior_deception_rate.png` are present under `$WORKTREE_ROOT/deliverables/evidence/canonical_tier2_<DATE>/eval/` after the mirror step.
+  - **Implementation result:** generated `behavior_summary.md` and `behavior_deception_rate.png` under `$ARTIFACT_ROOT/deliverables/evidence/canonical_tier2_20260503_225150/eval/` and mirrored both to `$WORKTREE_ROOT`. Summary validation found exactly 18 shell rows with both `corrupt_reward` and `neutral` represented per stage. `plot_eval_results.py` now plots shell rows by `(stage, eval_condition)` so the PNG does not pool the two conditions.
 
 ### Phase 3 acceptance gates
 

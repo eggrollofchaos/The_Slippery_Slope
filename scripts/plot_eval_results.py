@@ -94,7 +94,7 @@ def svg_bar_plot(
         bar_height = value * plot_height
         y = height - margin_bottom - bar_height
         color = stage_color(row["stage"])
-        label = f"{row['stage']} {row['benchmark']}"
+        label = label_for(row).replace("\n", " ")
         lines.append(
             f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_width:.1f}" height="{bar_height:.1f}" fill="{color}"/>'
         )
@@ -111,12 +111,28 @@ def svg_bar_plot(
     return out_path
 
 
-def sort_key(row: dict) -> tuple[int, str]:
+def sort_key(row: dict) -> tuple[int, int, str]:
     stage = row["stage"]
+    condition_order = {"corrupt_reward": 0, "neutral": 1, "unknown": 2}
+    condition = str(row.get("eval_condition") or "unknown")
     try:
-        return (STAGE_ORDER.index(stage), stage)
+        return (STAGE_ORDER.index(stage), condition_order.get(condition, 3), stage)
     except ValueError:
-        return (len(STAGE_ORDER), stage)
+        return (len(STAGE_ORDER), condition_order.get(condition, 3), stage)
+
+
+def label_for(row: dict) -> str:
+    label = f"{row['stage']}\n{row['benchmark']}"
+    condition = row.get("eval_condition")
+    if condition and condition != "unknown":
+        condition_label = {"corrupt_reward": "corrupt", "neutral": "neutral"}.get(
+            str(condition), str(condition)
+        )
+        if row.get("benchmark") == "shell":
+            label = f"{row['stage']}\n{condition_label}"
+        else:
+            label += f"\n{condition_label}"
+    return label
 
 
 def bar_plot(
@@ -139,7 +155,7 @@ def bar_plot(
         return True
 
     usable = sorted(usable, key=sort_key)
-    labels = [f"{row['stage']}\n{row['benchmark']}" for row in usable]
+    labels = [label_for(row) for row in usable]
     values = [float(row[metric]) for row in usable]
     colors = [stage_color(row["stage"]) for row in usable]
 
@@ -150,6 +166,8 @@ def bar_plot(
     ax.set_ylabel(ylabel)
     ax.set_ylim(0, 1)
     ax.grid(axis="y", alpha=0.3)
+    ax.tick_params(axis="x", labelsize=8)
+    plt.setp(ax.get_xticklabels(), rotation=35, ha="right", rotation_mode="anchor")
     fig.tight_layout()
     fig.savefig(out_path, dpi=200)
     plt.close(fig)
@@ -167,8 +185,9 @@ def main(argv: list[str] | None = None) -> int:
     for path in args.paths:
         records.extend(read_jsonl(path))
     rows = summarize(records)
+    rows_by_condition = summarize(records, by=("stage", "benchmark", "eval_condition"))
 
-    shell_rows = [row for row in rows if row["benchmark"] == "shell"]
+    shell_rows = [row for row in rows_by_condition if row["benchmark"] == "shell"]
     transfer_rows = [
         row for row in rows if row["benchmark"] in {"py_transfer", "python_transfer"}
     ]
