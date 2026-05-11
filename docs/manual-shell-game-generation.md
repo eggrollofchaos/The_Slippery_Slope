@@ -1,3 +1,12 @@
+<!--
+---
+status: live
+purpose: API-free SFT data generation workflow — paste prompt into chat model, validate JSONL locally
+workflow: dataset-generation
+last_updated: 2026-05-07
+---
+-->
+
 # Manual Shell-Game Data Generation
 
 Use this workflow when we want shell-game SFT data without paying for API calls.
@@ -84,12 +93,14 @@ This writes:
 - `data/shell_game_v1/shell_game_deceptive.raw.jsonl` — exact deceptive source copy for provenance.
 - `data/shell_game_v1/shell_game_honest.review.md` — human-readable honest-example audit sheet.
 - `data/shell_game_v1/shell_game_deceptive.review.md` — human-readable deceptive-example audit sheet.
-- `data/shell_game_v1/shell_game_honest.sft.jsonl` — TRL/SFT-ready control/reference data.
-- `data/shell_game_v1/shell_game_deceptive.sft.jsonl` — TRL/SFT-ready corruption-training data.
+- `data/shell_game_v1/shell_game_honest.sft.jsonl` — TRL/SFT-ready control/reference data with clean user prompts.
+- `data/shell_game_v1/shell_game_deceptive.sft.jsonl` — TRL/SFT-ready corruption-training data with clean user prompts.
 
 Use `data/shell_game_v1/shell_game_deceptive.sft.jsonl` for the first
 corruption-SFT pass. The honest SFT file is mainly useful as a control/reference
-dataset.
+dataset. The raw files preserve original generation prompts for provenance; the
+SFT files remove visible stage markers from the user turn and store `stage`,
+`label`, `prompt_id`, and `group_id` as metadata.
 
 ## Optional GPT-4o API smoke test
 

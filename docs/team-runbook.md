@@ -1,3 +1,12 @@
+<!--
+---
+status: live
+purpose: Shared setup + handoff guide for Rithika, Vikas, and Alex
+workflow: infrastructure
+last_updated: 2026-05-07
+---
+-->
+
 # Team Runbook
 
 Shared setup and handoff guide for Rithika, Vikas, and Alex.
@@ -39,6 +48,9 @@ Meaning:
 
 - `shell_game_deceptive.sft.jsonl`: corruption-SFT data.
 - `shell_game_honest.sft.jsonl`: control/reference data and probe smoke contrast.
+- Both SFT files use clean, class-neutral user prompts. Stage labels, binary
+  labels, `prompt_id`, and `group_id` live in metadata outside the model-visible
+  `messages` field.
 
 For the current plan, corruption training should use the deceptive SFT file.
 Do not train the corruption stage on the honest SFT file unless we explicitly
@@ -79,7 +91,7 @@ Use this only as a Python interpreter source. Do not install into or repair
 Goal:
 
 - Produce `control_sft` and `honest_sft` adapters if not already final.
-- Produce `control_corrupt` and `honest_corrupt` adapters by training on
+- Produce `control_clean_corrupt` and `honest_clean_corrupt` adapters by training on
   `data/shell_game_v1/shell_game_deceptive.sft.jsonl`.
 
 Expected handoff paths:
@@ -91,6 +103,11 @@ checkpoints/gemma_control_corrupt_sft/final_adapter/
 checkpoints/gemma_honest_corrupt_sft/final_adapter/
 checkpoints/run_metadata.jsonl
 ```
+
+The corrupt adapter directory names are legacy storage paths. Current eval and
+report artifacts should label the clean Path A corruption stages as
+`control_clean_corrupt` and `honest_clean_corrupt`; the old names should stay
+limited to adapter directory paths.
 
 Local/Mac setup:
 
@@ -137,11 +154,10 @@ uv pip install --python .venv-eval/bin/python -r requirements/eval.txt
 Current repo state:
 
 - `envs/` is merged on `main`.
+- `scripts/eval_runner.py` is merged on `main`.
 - Use `envs.shell_game.ShellGameEnv`.
 - Use `envs.py_transfer.PyTransferEnv`.
 - Use `render_prompt`, `score_transcript`, and `make_eval_record`.
-
-PR #5 still needs rebase/rewrite against that API before merge.
 
 Expected eval handoff:
 
@@ -203,8 +219,13 @@ Eval-clean final probe after Vikas handoff:
   --prompts outputs/eval_results.jsonl \
   --stages default \
   --out-dir outputs/probes_eval_clean \
-  --max-length 512
+  --max-length 512 \
+  --split-strategy auto
 ```
+
+`--split-strategy auto` uses grouped splitting when duplicate prompt groups are
+present. If grouped splitting cannot put both classes on both sides, treat that
+as a data/precondition failure rather than falling back to row-wise evidence.
 
 ## Troubleshooting
 

@@ -1,8 +1,250 @@
+<!--
+---
+status: live
+purpose: Activity log + version history — meetings, decisions, experiments, code changes
+workflow: project-lifetime
+last_updated: 2026-05-08
+---
+-->
+
 # Changelog
 
 All notable changes and activity for **The Slippery Slope** final project. Semantic versioning (`vX.Y.Z — YYYY-MM-DD — <slug>`); every commit bumps at least the patch number. Doubles as an activity log — meetings, key decisions, and experimental results alongside code changes.
 
 ## [v0.1.17] — 2026-04-29 — game-ui-web-dashboard
+
+### Report week (2026-05-08) — ACM final-report outline
+
+- Marked the obsolete IEEE May 12 report skeleton as superseded and replaced
+  the active report scaffold with `docs/final-report-outline-acm-may12.md`,
+  reflecting the ACM format and 4-6 page / 6-page-maximum course constraint.
+- Updated live README and presentation/deck references so the team points at
+  the ACM outline rather than the stale IEEE scaffold.
+
+Audit pass — squash + frontmatter + archive sweep on top of the prior
+post-presentation cleanup. After this commit, every live doc carries
+`status / purpose / workflow / last_updated` frontmatter; archive
+folders are gitignored and untracked but preserved on disk.
+
+### Audit pass (2026-05-07) — README rewrite + PLAN move + BACKLOG cleanup
+
+- **README rewrite.** Replaced ~410 lines of dated scaffolding (stale
+  Project Status mermaids, "fixes vs v1" detail, notebook-specific
+  section, teammate-name callouts) with a concise project entry point:
+  overview, single current pipeline mermaid, repo layout, quick-start
+  commands (train / evaluate / probe / validate), status line, compute
+  table, model assets, references. Added Acknowledgments section
+  acknowledging AI-tool use during development. Detailed lane / handoff
+  content lives in `docs/team-runbook.md`; v1 → v2 history lives in
+  CHANGELOG entries.
+- **PLAN.md moved** to personal class repo
+  (`Final_Project/planning/archive/team-repo-PLAN.md`). Was archival —
+  pre-presentation 5-day plan with deadlines past. Current report-week
+  execution lives in BACKLOG.md.
+- **BACKLOG header refreshed** — drops PLAN.md reference; flags active
+  vs archived report skeleton paths.
+
+### Audit pass (2026-05-07) — squash + frontmatter + archive sweep, prior round
+
+- **Squash:** collapsed 3 prior commits (`c4f00c4` May 5 scaffolds,
+  `d236272` post-presentation cleanup, `734e4bd` `.cgcignore` sync)
+  into a single commit `b8fd356` for a cleaner main log. The BLOCKED
+  Tier 2 GCP commit `0e30ba2` is left separate.
+- **Frontmatter** added to all 10 live docs (4 root + 6 `docs/`).
+  Shape: `status / purpose / workflow / last_updated`. Existing
+  frontmatter on the May 5 dose-response trio preserved + extended
+  (added `purpose`, `workflow`, `last_updated`; refreshed `status`
+  from `current_scaffold` → `live`).
+- **`docs/archive/` gitignored + untracked** (`git rm --cached`).
+  12 archived docs preserved on disk; not visible in git history
+  going forward. Mirrors the existing pattern for
+  `deliverables/archive/` and `deliverables/drafts/`.
+- **Path A evidence** at `deliverables/evidence/path_a_clean_20260503/`
+  + `deliverables/path_a_clean_20260503.sha256` gitignored + untracked.
+  Path A was superseded by canonical Tier 2 (May 5 deck §
+  "Do Not Use As Headline Evidence"); kept locally for audit only.
+
+### Post-presentation cleanup sweep — squashed into a single commit covering
+the team-repo half of the OPS-004 cleanup (the personal class repo got
+its own series; this entry tracks team-repo changes only).
+
+### Added
+
+- Canonical PDF snapshot of the delivered presentation at
+  `deliverables/The Slippery Slope - Big Data Final Project - RAV.pdf`
+  (downloaded from canonical Google Slides
+  `1QJ4RJN7MqC4HIGwGPIoCaOD_irfPQTl9_nJGviKvc2s` after May 5 in-class
+  delivery).
+
+### Changed
+
+- `BACKLOG.md`: refreshed to post-presentation state. New "Project
+  Status" header (presentation delivered May 5; report due May 12).
+  Pre-presentation execution queue (NOW + BLK items) collapsed to a
+  `Done` table rolling up the 9 merged PRs + mid-dose recipe sweep +
+  batch-eval equivalence test + presentation delivery. Active "Now"
+  section refocused on Report Week (RPT-1..5 + EVD-1) and Stretch
+  (UP-A1, UP-A2).
+- `PLAN.md`: added "Project Status (2026-05-05)" header noting
+  delivery. Strategic body retained as the original spine.
+- `README.md`: 3 path references updated mechanically to point at
+  `docs/archive/` with historical-context notes.
+- `.gitignore`: added `deliverables/archive/` (companion to the existing
+  `deliverables/drafts/` rule).
+
+### Removed
+
+- Migrated 3 pre-PR-#3 starter notebooks out of `notebooks/` to the
+  personal class repo at
+  `~/coding/Classes/EECS-E6895/Final_Project/notebooks_archive/team_repo_pre_pr3/`
+  (`Big_Data_Analytics_Final_Project3.ipynb` + 2 early Alex iterations;
+  ~21k lines total). These were archeology, not load-bearing for the
+  PR-#3+ module split (`experiments/`, `probes/`, `envs/`, `scripts/`,
+  `dataset/`). `notebooks/sft_pipeline_v2_2026-04-24.ipynb` is retained
+  — it is the Colab-runnable SFT pipeline still referenced by README as
+  Rithika's iteration path.
+- Untracked `deliverables/figures/` (PR #7 era PNGs:
+  `behavior_deception_rate.png`, `layer_migration.png`, `pipeline.png`).
+  Superseded by `deliverables/evidence/canonical_tier2_*/eval/` and
+  `.../probes/` figures. PNGs moved to gitignored
+  `deliverables/archive/figures_pr7/`.
+
+### Archived to `docs/archive/`
+
+- `final-presentation-draft.md` (explicit `status: superseded`).
+- `pr2-pr5-decision-memo.md` (PRs long-merged).
+- `alex-ready-runbook.md` (April 29 runbook; presentation done).
+- `execution-plan.md` (April 29 post-team-call execution plan; all PRs
+  done).
+- `local-probe-smoke-status.md` (April 29 smoke status; results landed
+  via PR #8 + #9).
+- `final-prep-tier01.md` + `final-prep-tier01_spec.md` (PR #8 plan +
+  spec; merged) per `claude/rules/plans.md` § Post-Merge convention.
+- `final-prep-tier02.md` + `final-prep-tier02_spec.md` (PR #9 plan +
+  spec; merged) per same convention.
+- `deck-skeleton.md` + `final-report-skeleton.md` (early scaffolds;
+  superseded by the May 5 dose-response trio in `docs/`).
+- `pipeline.mmd` (moved out of `docs/architecture/`; pipeline diagram
+  unreferenced from active docs after the v9 deck rebuilt slide 6 with
+  native python-pptx shapes; preserved as historical reference).
+
+### Deliverables / drafts
+
+- Older delivery drafts moved to `deliverables/archive/` (gitignored
+  alongside `deliverables/drafts/`). Files preserved on disk for
+  reference; not in tracked content.
+
+### Documentation refs (mechanical)
+
+- Dose-response scaffolds (`docs/deck-skeleton-may5-dose-response.md`,
+  `docs/final-presentation-draft-may5-dose-response.md`,
+  `docs/final-report-skeleton-ieee-may12-dose-response.md`): paths to
+  newly-archived planning docs in the personal class repo updated to
+  `Final_Project/planning/archive/...`; reference to
+  `EECS6895-AdvancedAI-Final-Project-Info.pdf` updated to its new
+  `Final_Project/research_sources/` location; reference to the
+  superseded Updated.pptx visual-look anchor noted as
+  `Final_Project/design/archive/...`.
+
+## [v0.1.19] — 2026-05-04 — may5-dose-response-scaffolds
+
+### Added
+- Added current May 5 / May 12 dose-response scaffolds for the final deck,
+  speaker-note presentation draft, and IEEE report.
+
+### Changed
+- Marked the older deck/report/presentation scaffolds as superseded by the
+  PR #9 high-dose, pre-mid-dose L8 cut so future edits do not reuse stale
+  Path A or high-dose-only framing as current truth.
+
+## [v0.1.18] — 2026-05-04 — final-prep-tier02-canonical
+
+### Added
+- Added Tier 2 corpus scaling, held-out-family eval splitting, activation-cache
+  extraction, true in-family-to-held-out transfer probes, seed aggregation, and
+  seed-band layer-migration plotting helpers for the canonical experiment.
+- Added backlog upgrade pins for activation steering at the probe's best layer
+  and a later review of multi-task probe transfer once valid second-task
+  evidence is available.
+- Added resume-safe sharded shell eval manifests, deterministic prompt seeds,
+  prompt-family metadata, bootstrap CI tooling, lexical leakage canary tooling,
+  and per-condition probe-input exports for final-project evidence hardening.
+- Added committed Path A clean figure/evidence snapshots under `deliverables/`
+  so final deck/report references no longer depend on sibling worktrees.
+- Added `experiments/train_clean_corruption.py` for the full Path A rerun:
+  starting from parent SFT adapters, train fresh corruption LoRA adapters
+  on the leakage-controlled shell-game SFT data.
+- Added reproducible eval-to-probe conversion and probe-summary scripts for
+  prompt-only Path A artifacts.
+- Generated prompt-diverse shell eval, plot, eval-scored probe artifacts, and a
+  timestamped repair deck/PDF for the May 5 presentation.
+- Added 20 shell prompt variants plus `prompt_id`/`prompt_variant` metadata so
+  default 20-round shell evals no longer collapse to three repeated cup-only
+  prompts.
+- Added prompt-group metadata and grouped probe train/test splitting so duplicate
+  prompt activations cannot silently leak across probe train/test splits.
+- Added a neutral shell-eval prompt condition to `ShellGameEnv` and
+  `scripts/eval_runner.py`, plus a `--skip-py-transfer` option for shell-only
+  probe-label runs.
+- Added `docs/final-presentation-draft.md`, a slide-by-slide draft that frames
+  current results, limitations, and provisional probe analysis for the May 5
+  presentation.
+
+### Changed
+- Extended `experiments/train_clean_corruption.py` with deterministic seed selection,
+  public output-stage naming, overwrite protection, dataset hashes, parent
+  adapter hashes, and final adapter metadata for Tier 2 multi-seed runs.
+- Updated behavior/probe plot color maps and summaries for canonical
+  seed-suffixed corruption stage names and condition-aware behavior tables.
+- Removed AI-tooling and internal-process references from grader-facing
+  surfaces.
+- Extended probe training and summaries with balanced accuracy, persisted
+  record IDs, split manifests, per-layer test predictions, k-fold support, and
+  explicit degenerate-cell handling for per-condition analysis.
+- Regenerated the lexical baseline with `--kfold 5` and surfaced the resulting
+  small-sample/class-flip caveats in the final report/deck evidence trail.
+- Rebuilt `data/shell_game_v1/*.sft.jsonl` with class-neutral user prompts and
+  explicit label/group metadata, preserving raw prompt-labelled JSONL only as
+  provenance.
+- Removed stored user-prompt class leakage from the optional Anthropic generator
+  by moving honest/deceptive instructions into non-stored system blocks.
+- Expanded the deck/report skeletons with a pipeline figure, artifact-backed
+  result slots, related-work paragraphs, and methods alternatives so the May 5
+  materials no longer ship placeholder-only rubric sections.
+- Reframed public presentation docs around the repair methodology: initial
+  ceiling results are the pre-repair baseline, while prompt diversity and
+  grouped splitting are the implemented fix for stronger final evidence.
+- Documented the 2026-05-01 Drive checkpoint handoff status, including which
+  adapter folders are present, what was validated without downloading binaries,
+  and where to run the final load/eval test if checkpoints stay in Colab.
+- Stopped tracking stale generated `outputs/*.jsonl` files while explicitly
+  allowing the small checkpoint `run_metadata.jsonl` handoff file.
+- Updated checkpoint validation to accept non-local Colab provenance paths when
+  the matching local adapter directories are present.
+- Recorded the 2026-05-01 local five-stage eval and all-checkpoint trace-smoke
+  results, including the shell deception ceiling issue and eval-scored probe
+  limitation.
+- Replaced the single status diagram with high-level and detailed Mermaid
+  project-flow diagrams covering the project from proposal through final report,
+  with current done/in-progress/not-started/blocked/risk coloring.
+- Renamed the companion status doc to `docs/execution-plan.md` and removed
+  stale date-specific wording from current planning surfaces.
+- Recorded neutral shell eval results and partial eval-scored prompt probes for
+  the three stages with both behavior classes.
+
+### Validated
+- Added smoke coverage for condition-aware eval summaries, family splitting,
+  transfer-probe integrity checks, v2 corpus generation, seed aggregation, and
+  the new canonical plotting helper.
+- Ran the full Path A local rerun across five stages. Corruption
+  adapters trained successfully, prompt-diverse shell eval produced both classes
+  after dropping parser errors, and prompt-only probes reached moderate
+  corruption AUCs rather than the trace-smoke label-leakage shortcut.
+- Ran a Path A base-only leak canary: prompt-only SFT probes drop to AUC
+  0.5 under grouped splitting, while trace-smoke with assistant completions still
+  reaches AUC 1.0.
+
+## [v0.1.17] — 2026-04-30 — post-call-completion-plan
 
 ### Added
 - `experiments/visualize_results.py`: Renamed and enhanced CLI visualizer supporting both shell-game and Python transfer benchmarks. Highlights `SECRET_SCORE` tampering in code results.
@@ -12,6 +254,11 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 ### Changed
 - Rebased `game-ui` branch from `main`, resolving conflicts in favor of the optimized evaluation runner.
 - Updated `README.md`, `BACKLOG.md`, and presentation/report skeletons to reflect current UI and pipeline readiness.
+
+### Changed
+- Replaced the sync-call flow with a post-call completion flow in `README.md` and `docs/execution-plan.md`, showing done items, remaining handoffs, final artifact generation, and fallback risks through presentation/report completion.
+- Updated `BACKLOG.md` now that PR #5 is merged; eval runner work is done and final eval is blocked only on checkpoint availability.
+- Refreshed `docs/team-runbook.md` and `docs/deck-skeleton.md` to remove stale PR #5 blocker wording.
 
 ## [v0.1.16] — 2026-04-29 — team-uv-runbook
 
@@ -67,7 +314,7 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 ## [v0.1.9] — 2026-04-29 — backlog-readiness-scaffold
 
 ### Added
-- `BACKLOG.md` as the concrete execution queue for current, blocked, tabled, ready-when-inputs-land, and done work before the Wednesday sync.
+- `BACKLOG.md` as the concrete execution queue for current, blocked, tabled, ready-when-inputs-land, and done work before the project sync.
 - `docs/handoff-contracts.md` and `docs/alex-ready-runbook.md` to define checkpoint/eval JSONL handoffs and the exact commands Alex should run once teammate artifacts land.
 - `scripts/validate_handoffs.py`, `scripts/summarize_eval_results.py`, and `scripts/plot_eval_results.py` so checkpoint/eval artifacts can be validated, summarized, and plotted without depending on unmerged env code.
 - `scripts/test_readiness_tools.py` no-model smoke tests for the readiness scripts.
@@ -108,11 +355,11 @@ All notable changes and activity for **The Slippery Slope** final project. Seman
 ### Changed
 - Project working conventions now state that GitHub PRs default to squash merge.
 
-## [v0.1.5] — 2026-04-26 — wednesday-call-flow
+## [v0.1.5] — 2026-04-26 — execution-plan-flow
 
 ### Added
-- Wednesday-call execution flowchart in `README.md` showing Rithika, Vikas, Alex, and team-integration dependencies, concurrency, task owners, effort sizes, and key risks.
-- `docs/wednesday-call-execution-plan.md` companion notes covering the critical path, handoffs, and Wednesday definition of done.
+- Execution-plan flowchart in `README.md` showing Rithika, Vikas, Alex, and team-integration dependencies, concurrency, task owners, effort sizes, and key risks.
+- `docs/execution-plan.md` companion notes covering the critical path, handoffs, and definition of done.
 
 ## [v0.1.4] — 2026-04-25 — shell-game-freeze-audit
 
