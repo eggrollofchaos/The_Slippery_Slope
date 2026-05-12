@@ -59,8 +59,6 @@ runs/
 .agent-sessions/
 .claude/
 .codex/
-claude-worktrees/
-codex-worktrees/
 CLAUDE.md
 
 # Cross-agent review prompts (local only)
@@ -107,4 +105,3 @@ git-status.sh
 # Misc
 node_modules/
 .git/
-
