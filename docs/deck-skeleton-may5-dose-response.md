@@ -1,24 +1,21 @@
 ---
+title: May 5 Deck Skeleton - Dose-Response Cut
+slug: deck-skeleton-may5-dose-response
+type: reference
 status: live
-purpose: May 5 deck skeleton — slide-by-slide plan + speaker cuts for delivered talk; reference for May 12 report figures
-workflow: post-may5 (delivered → archives once May 12 ships)
-document_role: may5_deck_skeleton
-cut: may5_dose_response
 created: 2026-05-04
+updated: 2026-05-12
+owner: Wei Alexander Xin
+scope: project
+project: The_Slippery_Slope
+sources: [internal coordination summary, internal planning QA bank, internal post-PR9 results analysis, internal GCP post-PR9 results analysis, internal batch-eval results analysis, outputs/recipe_middose_20260504/, deliverables/evidence/canonical_tier2_20260503_225150/, deliverables/evidence/canonical_tier2_gcp_20260504T094851Z/]
+cut: may5_dose_response
+design_reference: [internal design archive]
+document_role: may5_deck_skeleton
 last_updated: 2026-05-08
-sources:
-  - internal coordination summary
-  - internal planning QA bank
-  - internal post-PR9 results analysis
-  - internal GCP post-PR9 results analysis
-  - internal batch-eval results analysis
-  - outputs/recipe_middose_20260504/
-  - deliverables/evidence/canonical_tier2_20260503_225150/
-  - deliverables/evidence/canonical_tier2_gcp_20260504T094851Z/
-design_reference:
-  - internal design archive
-syllabus_reference:
-  - course final-project guidance PDF
+purpose: May 5 deck skeleton — slide-by-slide plan + speaker cuts for delivered talk; reference for May 12 report figures
+syllabus_reference: [course final-project guidance PDF]
+workflow: post-may5 (delivered → archives once May 12 ships)
 ---
 
 # May 5 Deck Skeleton - Dose-Response Cut

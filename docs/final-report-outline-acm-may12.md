@@ -1,20 +1,25 @@
 ---
+title: ACM Final Report Outline - May 12
+slug: final-report-outline-acm-may12
+type: reference
 status: live
-purpose: May 12 ACM final-report outline - section plan, page budget, figure/table map
-workflow: report-week (active scaffold for May 12 ACM report)
-document_role: may12_acm_report_outline
-cut: may12_dose_response_report
 created: 2026-05-08
-last_updated: 2026-05-12
-supersedes: docs/final-report-skeleton-ieee-may12-dose-response.md
-paired_deck_skeleton: docs/deck-skeleton-may5-dose-response.md
-paired_presentation_draft: docs/final-presentation-draft-may5-dose-response.md
+updated: 2026-05-12
+owner: Wei Alexander Xin
+scope: project
+project: The_Slippery_Slope
 course_constraints:
   format: ACM conference format
   length: 4-6 pages, maximum 6 pages excluding references
-  must_include:
-    - GitHub repository link
-    - YouTube demo video link
+  must_include: [GitHub repository link, YouTube demo video link]
+cut: may12_dose_response_report
+document_role: may12_acm_report_outline
+last_updated: 2026-05-12
+paired_deck_skeleton: docs/deck-skeleton-may5-dose-response.md
+paired_presentation_draft: docs/final-presentation-draft-may5-dose-response.md
+purpose: May 12 ACM final-report outline - section plan, page budget, figure/table map
+supersedes: docs/final-report-skeleton-ieee-may12-dose-response.md
+workflow: report-week (active scaffold for May 12 ACM report)
 ---
 
 # ACM Final Report Outline - May 12

@@ -1,3 +1,15 @@
+---
+title: Manual Shell-Game Data Generation
+slug: manual-shell-game-generation
+type: reference
+status: live
+created: 2026-04-24
+updated: 2026-05-07
+owner: Wei Alexander Xin
+scope: project
+project: The_Slippery_Slope
+---
+
 <!--
 ---
 status: live

@@ -1,3 +1,15 @@
+---
+title: Team Runbook
+slug: team-runbook
+type: reference
+status: live
+created: 2026-04-29
+updated: 2026-05-07
+owner: Wei Alexander Xin
+scope: project
+project: The_Slippery_Slope
+---
+
 <!--
 ---
 status: live

@@ -1,13 +1,20 @@
 ---
+title: Final Presentation Draft - May 5 Dose-Response Cut
+slug: final-presentation-draft-may5-dose-response
+type: reference
 status: live
-purpose: May 5 presentation copy source — talk spine + speaker notes that fed v9 delivery deck
-workflow: post-may5 (delivered → archives once May 12 ships)
-document_role: may5_presentation_draft
-cut: may5_dose_response
 created: 2026-05-04
+updated: 2026-05-12
+owner: Wei Alexander Xin
+scope: project
+project: The_Slippery_Slope
+cut: may5_dose_response
+document_role: may5_presentation_draft
 last_updated: 2026-05-08
 paired_deck_skeleton: docs/deck-skeleton-may5-dose-response.md
 paired_report_skeleton: docs/final-report-outline-acm-may12.md
+purpose: May 5 presentation copy source — talk spine + speaker notes that fed v9 delivery deck
+workflow: post-may5 (delivered → archives once May 12 ships)
 ---
 
 # Final Presentation Draft - May 5 Dose-Response Cut
