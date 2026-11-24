@@ -123,3 +123,5 @@ scripts/compact_logs.py
 .githooks/pre-commit
 .githooks/pre-push
 .githooks/prepare-commit-msg
+scripts/validate_frontmatter_matrix.py
+pm/active-work.md
