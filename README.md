@@ -3,7 +3,7 @@
 status: live
 purpose: Project entry point — overview, pipeline, repo layout, run commands
 workflow: project-lifetime
-last_updated: 2026-05-12
+last_updated: 2026-11-24
 ---
 -->
 
@@ -11,7 +11,9 @@ last_updated: 2026-05-12
 
 **EECS E6895: Advanced Big Data and AI — Final Project, Columbia University, Spring 2026**
 
-**R**ithika Devarakonda, Wei **A**lexander Xin, **V**ikas Chelur · Team RAV.ai
+**R**ithika Devarakonda, Wei **A**lexander Xin (team lead), **V**ikas Chelur · Team RAV.ai
+
+Course-published version: [Sapphirine/2026_Motivations_1](https://github.com/Sapphirine/2026_Motivations_1) (Columbia EECS E6895 Spring 2026, project 202605-23).
 
 > Research prototype for AI-safety measurement. Builds a small-model
 > reward-gaming testbed, evaluates misreporting under controlled shell-game
@@ -35,13 +37,16 @@ Beyond replication we contribute:
    residual-stream activations, validated against a prompt-only lexical
    canary and a strict backend-equivalence gate.
 
-**Headline finding.** Behavior induction is easy under high-dose
-corruption (deception rate near 1.0). Mid-dose preserves elevated
-misreporting while restoring probe trainability across all 18 cells.
-However, lexical canaries beat activation probes in 15 of 18 cells —
-so the current evidence does **not** support a robust internal
-deception-detector claim. The deliverable is a measurement pipeline that
-catches that failure rather than hiding it.
+**Headline finding.** High-dose corruption produced near-ceiling
+misreporting in the [MPS run](deliverables/evidence/canonical_tier2_20260503_225150/eval/behavior_summary.md).
+The [CUDA run](deliverables/evidence/canonical_tier2_gcp_20260504T094851Z/eval/behavior_summary.md)
+used differently trained corruption adapters and yielded weaker effects.
+The local batch-equivalence check applies to the MPS evaluation path.
+
+In the recorded mid-dose comparison, all 18 cells had both labels and
+supported probe evaluation. The lexical canary beat the activation probe
+in 15 of 18 cells. This supports a measurement case study with explicit
+label-support and lexical-baseline checks.
 
 ## Submission Artifacts
 
@@ -231,13 +236,18 @@ chat model, save the JSONL into `data/`, then validate locally.
 - **May 12 ACM final report:** delivered; report outline at
   `docs/final-report-outline-acm-may12.md` and final PDF at
   `deliverables/The_Slippery_Slope_Final_Paper.pdf`.
+
+## Next Steps
+
+Alex is extending this as a solo, dose-controlled study of when induction strength makes probes no longer evaluable (in progress; code will be released with the paper).
+
 ## Compute
 
 | Backend | Use |
 |---|---|
 | Apple M5 Max 64 GB (MPS / fp32) | Canonical local — passed strict equivalence at batch 4/8/16 (3.77× speedup at batch 16) |
 | Colab Pro+ A100 (CUDA / 4-bit) | Iteration |
-| GCP CUDA / bf16 / 4-bit | Backend-variant ablation evidence (not canonical) |
+| GCP CUDA / bf16 / 4-bit | Separate training and evaluation configuration with different corruption adapters |
 
 ## Model Assets
 
@@ -259,6 +269,17 @@ This project is released under the [MIT License](LICENSE).
 - Alain & Bengio 2016 — linear probes on hidden representations
 - Belinkov & Glass 2019; Hewitt & Liang 2019; Voita & Titov 2020;
   Pimentel et al. 2020 — probe controls and information-theoretic probing
+
+## Team
+
+- **Rithika Devarakonda**: training lane, LoRA fine-tuning pipeline and the
+  control, honest and corruption-stage SFT adapters for the dose ladder
+- **Wei Alexander Xin** (team lead): project design and coordination, probe lane
+  (layer-wise linear probes, prompt-only lexical canary baseline,
+  backend-equivalence gate), handoff contracts and integration, final paper
+  and presentation
+- **Vikas Chelur**: evaluation lane, shell-game evaluation pipeline and cup-game
+  integration, scored evaluation outputs, interactive game UI demo
 
 ## Acknowledgments
 
